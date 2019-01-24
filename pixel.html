@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Pixel-Art Explosion</title>
+	<link href="styles/main.css" rel="stylesheet" type="text/css"/>
+</head>
+<body>
+	<canvas id="canvas" width="1024" height="512"></canvas>
+	<script type="text/javascript">
+	
+//--------- Javascript Starts Here -------------
+const canvas = document.getElementById("canvas");
+const c      = canvas.getContext("2d");
+const HEIGHT = canvas.height;
+const WIDTH  = canvas.width;
+canvas.addEventListener('mousemove', mouseHandler);
+window.addEventListener("keydown", keyboardHandler);
+window.addEventListener("keyup", keyboardHandler);
+
+
+var mouse = {
+	x: 0,
+	y: 0
+}
+
+
+var ctrl = {
+	shift : false,
+	ctrl  : false
+}
+
+function mouseHandler(evt)
+{
+		//mouse.x = event.x;
+		//mouse.y = event.y;
+
+		var rect = canvas.getBoundingClientRect();
+		var root = document.documentElement;
+		mouse.x = evt.clientX - rect.left - root.scrollLeft;
+		mouse.y = evt.clientY - rect.top - root.scrollTop;
+
+		if(mouse.x < 0) mouse.x = 0;
+		if(mouse.y < 0) mouse.y = 0;
+		if(mouse.x > WIDTH) mouse.x = WIDTH;
+		if(mouse.y > HEIGHT) mouse.y = HEIGHT;
+				
+}
+
+
+
+
+function keyboardHandler(evt)
+{
+	var state = (evt.type == "keydown")? true : false;
+	mouse.down = state;
+
+	switch(evt.keyCode)
+	{
+		case 16: ctrl.shift = state; break;
+		case 18: ctrl.ctrl  = state; break;
+		case 67: if(evt.type =="keydown") neighbours(); break;
+		case 90: 
+			if(evt.type =="keydown") 
+			{
+				ready = !ready;
+				if(ready)
+					readyTheFireworks();
+				else
+					fireworks = [];
+					refresh();
+			}
+				 
+	}
+
+}
+
+
+
+
+function makeGrid(col, row)
+{
+	var cols = new Array(col);
+	for(let i = 0; i < col; i++)
+	{
+		cols[i] = new Array(row);
+	}
+
+	return cols;
+}
+
+
+function Cell(x, y, s)
+{
+	this.x = x;
+	this.y = y;
+	this.s = s;
+	this.yes = false;
+
+	this.draw = function()
+	{
+		if(this.yes){
+			c.strokeStyle = "grey";
+			c.fillStyle = "white";
+
+		}
+		else{
+			c.strokeStyle = "grey";
+			c.fillStyle = "black";
+
+		}
+
+		c.fillRect(this.x, this.y, this.s, this.s);
+		c.strokeRect(this.x, this.y, this.s, this.s);
+	}
+
+	this.set = function(setting)
+	{
+		this.yes = setting;
+		this.draw();
+	}
+}
+
+const GRAV = 3;
+
+var colors = [
+	"cyan",
+	"lightblue",
+	"pink",
+	"purple",
+	"lightgreen"
+];
+
+function Particle(x, y)
+{
+	this.x = x;
+	this.y = y;
+	this.xv = (Math.random()*(2*3) -3) * 15;
+	this.yv = (Math.random()*(-4) - 2) * 20;
+	this.col = colors[Math.floor(Math.random()*colors.length)];
+	this.size1 = Math.random()*10 + 2;
+
+
+	this.draw = function(dt)
+	{
+		this.x += this.xv * dt;
+		this.y += this.yv * dt;
+
+		this.yv += GRAV;
+		this.size1 -= 0.1;
+
+		c.fillStyle = this.col;
+		c.fillRect(this.x, this.y, this.size1, this.size1);
+	}
+}
+
+
+
+function Explosion(x, y, n)
+{
+	this.x = x;
+	this.y = y;
+	this.particles = [];
+
+	for(let i = 0; i < n; i++)
+		this.particles.push(new Particle(this.x, this.y));
+
+	
+
+	this.draw = function(dt)
+	{
+		for(let i = this.particles.length-1; i >=0; i--){
+			this.particles[i].draw(dt);
+			if(this.particles[i].size1 <= 0) this.particles.splice(i, 1);
+		}
+		
+	}
+}
+
+
+
+
+var size1 = 16;
+var columns = WIDTH / size1;
+var rows	= HEIGHT/ size1;
+var grid = makeGrid(columns, rows);
+var fireworks = [];
+var ready = false;
+
+function readyTheFireworks()
+{
+	for(let i = 0; i < columns; i++)
+		for(let j = 0; j < rows; j++)
+			if(grid[i][j].yes)
+			{
+				fireworks.push(new Explosion(grid[i][j].x, grid[i][j].y, Math.random() * 4 * 2));
+			}
+}
+
+
+for(let i = 0; i < columns; i++)
+	for(let j = 0; j < rows; j++)
+	{
+		grid[i][j] = new Cell(i * size1, j * size1, size1, size1);
+	}
+
+
+for(let i = 0; i < columns; i++)
+	for(let j = 0; j < rows; j++)
+		grid[i][j].draw();
+
+
+
+
+function neighbours()
+{
+	var ii = Math.floor(mouse.x / size1);
+	var jj = Math.floor(mouse.y / size1);
+
+	if(ii > 0)			grid[ii-1][jj].set(true);
+	if(ii < columns-1)	grid[ii+1][jj].set(true);
+	if(jj > 0) 			grid[ii][jj-1].set(true);
+	if(jj < rows-1)		grid[ii][jj+1].set(true);
+
+	//refresh();
+}
+
+
+function refresh()
+{
+	for(let i = 0; i < columns; i++)
+			for(let j = 0; j < rows; j++)
+				grid[i][j].draw();
+}
+
+
+// update section for drawing
+function drawingPart()
+{
+	if(ctrl.ctrl){
+		grid[Math.floor(mouse.x / size1)][Math.floor(mouse.y / size1)].set(false);
+	}
+
+	if(ctrl.shift) {
+		grid[Math.floor(mouse.x / size1)][Math.floor(mouse.y / size1)].set(true);
+	}
+}
+
+
+
+function clear()
+{
+	c.fillStyle = "rgba(0,0,0,0.7)";
+	c.fillRect(0, 0, WIDTH, HEIGHT);
+}
+
+
+
+// update section for fireworks
+function fireworksPart(dt)
+{
+	clear();
+	
+	for(var i in fireworks)
+	{
+		fireworks[i].draw(dt);
+	}
+
+}
+
+
+var lastTime = 0;
+
+function update(cc)
+{
+	if(isNaN(cc)) cc = 0;
+	const dt = (cc - lastTime)/1000;
+	lastTime = cc;
+	
+	if(!ready)
+		drawingPart();
+	else
+		fireworksPart(dt);
+
+	requestAnimationFrame(update);
+}
+
+update();
+
+	</script>
+
+<br>
+<a href="index.html">Back</a>
+<h2>How to play</h2>
+<pre>
+<b> [SHIFT]</b> to Draw
+<b>     [Z]</b> to EXPLODE
+<b>[Alt gr]</b> to erase pixel (not ALT. It works but then you need to click the screen again)
+<b>     [C]</b> miscellaneous pattern
+</pre>
+
+
+
+</body>
+</html>

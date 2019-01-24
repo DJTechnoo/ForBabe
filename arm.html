@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Spider Leg</title>
+	<link href="styles/main.css" rel="stylesheet" type="text/css"/>
+</head>
+<body>
+	<canvas id="canvas" height="512" width="1024"></canvas>
+	<script type="text/javascript">
+		
+
+// ---------- Javascript ------------------------
+
+const canvas = document.getElementById("canvas");
+const c 	 = canvas.getContext("2d");
+const W 	 = canvas.width;
+const H 	 = canvas.height;
+
+document.addEventListener("keydown", keyboardHandler);
+document.addEventListener("keyup", keyboardHandler);
+
+
+var ctrl = {
+	l1 : false,
+	r1 : false,
+	l2 : false,
+	r2 : false,
+	l3 : false,
+	r3 : false,
+	l4 : false,
+	r4 : false,
+	l5 : false,
+	r5 : false,
+	g1 : false,
+	g2 : false,
+	g3 : false,
+	g4 : false,
+	g5 : false,
+	s1 : false,
+	s2 : false,
+	s3 : false,
+	s4 : false,
+	s5 : false,
+
+}
+
+
+function keyboardHandler(evt)
+{
+	var state = (evt.type == "keydown")? true : false;
+	switch(evt.key){
+		// rotate
+		case 'q': ctrl.l1 = state; break;
+		case 'a': ctrl.r1 = state; break;
+		case 'w': ctrl.l2 = state; break;
+		case 's': ctrl.r2 = state; break;
+		case 'e': ctrl.l3 = state; break;
+		case 'd': ctrl.r3 = state; break;
+		case 'r': ctrl.l4 = state; break;
+		case 'f': ctrl.r4 = state; break;
+		case 't': ctrl.l5 = state; break;
+		case 'g': ctrl.r5 = state; break;
+
+		// grow
+		case 'z': ctrl.g1 = state; break;
+		case 'x': ctrl.g2 = state; break;
+		case 'c': ctrl.g3 = state; break;
+		case 'v': ctrl.g4 = state; break;
+		case 'b': ctrl.g5 = state; break;
+
+		// shrink
+		case '1': ctrl.s1 = state; break;
+		case '2': ctrl.s2 = state; break;
+		case '3': ctrl.s3 = state; break;
+		case '4': ctrl.s4 = state; break;
+		case '5': ctrl.s5 = state; break;
+	}
+}
+
+
+function vec(x, y)
+{
+	this.x = x;
+	this.y = y;
+
+	this.add = function(v)
+	{
+		return new vec(this.x + v.x, this.y + v.y);
+	}
+
+
+	this.sub = function(v)
+	{
+		return new vec(this.x - v.x, this.y - v.y);
+	}
+
+
+	this.scale = function(s)
+	{
+		return new vec(this.x*s, this.y*s);
+	}
+
+
+	this.adds = function(v)
+	{
+		this.x += v.x, this.y += v.y;
+	}
+
+
+	this.subs = function(v)
+	{
+		this.x -= v.x, this.y -= v.y;
+	}
+
+
+	this.scales = function(s)
+	{
+		this.x *= s, this.y *= s;
+	}
+}
+
+
+function rad(degree)
+{
+	return degree * (Math.PI/180);
+}
+
+
+function Seg(a_, len_, angle_)
+{
+	this.a = a_;
+	this.len = len_;
+	this.angle = angle_;
+	this.orient = angle_;
+	this.b = new vec(Math.cos(rad(this.orient+this.angle)) * this.len + this.a.x,
+					 Math.sin(rad(this.orient+this.angle)) * this.len + this.a.y);
+	this.child = null;
+	this.stroke = 10;
+
+	// springs
+	this.force = 0;
+	this.angleVel = 0;
+	this.strength = 0.05;
+	this.drag = 0.95;
+	this.targ = angle_;
+
+	this.targG = len_;
+	this.gVel = 0;
+
+	this.addChild = function(ch){
+		this.child = ch;
+		this.child.a = this.b;
+		this.child.orient = this.orient + this.angle;
+	}
+
+	this.updateChild = function(){
+		this.child.a = this.b;
+		this.child.orient = this.orient + this.angle;
+	}
+
+
+	this.rotate = function(r)
+	{
+		this.targ += 0.7*(-r);
+	}
+
+
+	this.setStroke = function(s)
+	{
+		this.stroke = s;
+	}
+
+
+	this.grow = function(g){
+		if((this.targG > 30 || g == 1) && (this.targG < 100 || g == -1))
+			this.targG += 1.5*g;
+	}
+
+
+	this.drawBall = function(xx, yy, rr)
+	{
+		c.fillStyle = "rgba(200, 100, 200, 0.2)";
+		c.beginPath();
+		c.arc(xx, yy, this.stroke,0,2*Math.PI);
+		c.fill();
+	}
+
+
+	
+
+	this.draw = function()
+	{
+		this.force = this.targ - this.angle; 
+		this.force *= this.strength;
+		this.angleVel *= this.drag;
+		this.angleVel += this.force;
+		this.angle += this.angleVel;
+
+		this.force = this.targG - this.len; 
+		this.force *= this.strength;
+		this.gVel *= this.drag;
+		this.gVel += this.force;
+		this.len += this.gVel;
+		
+		this.b.x = Math.cos(rad(this.orient+this.angle)) * this.len + this.a.x;
+		this.b.y = Math.sin(rad(this.orient+this.angle)) * this.len + this.a.y;
+		c.strokeStyle = "rgba(200,166,212, 0.2)";
+		c.beginPath();
+		c.moveTo(this.a.x, this.a.y);
+		c.lineWidth = this.stroke;
+		c.lineTo(this.b.x , this.b.y);
+		c.stroke();
+
+		
+
+		if (this.child != null){
+			this.updateChild();
+
+		}
+
+		this.drawBall(this.b.x, this.b.y, 5);
+	}
+}
+
+
+
+
+
+
+var segs = [
+	new Seg(new vec(512, 250), 35, 10),
+	new Seg(new vec(0, 0), 50, 45),
+	new Seg(new vec(0, 0), 50, 45),
+	new Seg(new vec(0, 0), 50, 45),
+	new Seg(new vec(0, 0), 50, 45)
+];
+
+
+for(let i = 0; i < segs.length-1; i++){
+	segs[i].addChild(segs[i+1]);
+}
+
+for(let i = 1; i < segs.length;  i++){
+	segs[i].setStroke(0.5 + (4/(i)));
+}
+
+function clear()
+{
+	c.fillStyle = "rgba(0, 0, 0, 0.4)";
+	c.fillRect(0, 0, W, H);
+}
+
+
+function control()
+{
+	// rotate
+	if(ctrl.l1) segs[0].rotate(1);
+	if(ctrl.r1) segs[0].rotate(-1);
+	if(ctrl.l2) segs[1].rotate(1);
+	if(ctrl.r2) segs[1].rotate(-1);
+	if(ctrl.l3) segs[2].rotate(1);
+	if(ctrl.r3) segs[2].rotate(-1);
+	if(ctrl.l4) segs[3].rotate(1);
+	if(ctrl.r4) segs[3].rotate(-1);
+	if(ctrl.l5) segs[4].rotate(1);
+	if(ctrl.r5) segs[4].rotate(-1);
+
+	// grow
+	if(ctrl.g1) segs[0].grow(1);
+	if(ctrl.g2) segs[1].grow(1);
+	if(ctrl.g3) segs[2].grow(1);
+	if(ctrl.g4) segs[3].grow(1);
+	if(ctrl.g5) segs[4].grow(1);
+
+	// shrink
+	if(ctrl.s1) segs[0].grow(-1);
+	if(ctrl.s2) segs[1].grow(-1);
+	if(ctrl.s3) segs[2].grow(-1);
+	if(ctrl.s4) segs[3].grow(-1);
+	if(ctrl.s5) segs[4].grow(-1);
+
+}
+
+
+function update(){
+
+	clear();
+
+	control();
+
+	for(let i in segs){
+		segs[i].draw();
+	}
+
+
+
+	requestAnimationFrame(update);
+
+}
+
+update();
+
+
+
+	</script>
+<br>
+<a href="index.html">Back</a>
+<h2>How to play</h2>
+<pre>
+<b>[QWERT]</b> Rotate part of leg Left    
+<b>[ASDFG]</b> Rotate part of leg Right
+<b>[12345]</b> Shrink part of leg	
+<b>[ZXCVB]</b> Grow part of leg 
+</pre>
+</body>
+</html>

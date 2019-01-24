@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Infinite Blocks</title>
+	<link href="styles/main.css" rel="stylesheet" type="text/css"/>
+</head>
+<body>
+	<canvas id="canvaz" width="1024" height="512"></canvas>
+	<script>
+
+window.addEventListener("keydown", keydownHandler);
+window.addEventListener("keyup", keydownHandler);
+
+
+
+
+function colours(){
+	this.colourIndex = 0;
+	this.colourset = [
+		// just add new 2-size array with rgb(a) or hex string
+		["rgb(173,255,47)", "rgba(127,255,212, 0.5)"],
+		["rgba(0,255,255, 0.9)", "rgb(255,255,0)"],
+		["rgb(250,128,114)","rgb(240,128,128)"],
+		["rgb(238,130,238)", "rgb(255,0,255)"]
+	];
+	this.set = function(part){
+		if(this.colourIndex >= this.colourset.length)
+			this.colourIndex = 0;
+		return this.colourset[this.colourIndex][part];
+	}
+	
+};
+
+var col = new colours();
+var soundOn = false;
+function controller(){
+	this.left = false;
+	this.right = false;
+	this.up = false;
+	this.down = false;
+	this.trim = false;
+	this.boos = false;
+};
+
+function keydownHandler(evt){
+	var state = (evt.type == "keydown")? true:false;
+	switch(evt.keyCode){
+		case 65:
+		case 37: controller.left  = state; break;
+		case 87:
+		case 38: controller.up    = state; break;
+		case 68:
+		case 39: controller.right = state; break;
+		case 83:
+		case 40: controller.down  = state; break;
+		case 16: controller.trim  = state; break;
+		case 77: controller.boost = state; break;
+		case 90: if(evt.type == "keydown") col.colourIndex++; break;
+		case 81: if(evt.type == "keydown") silence(); break;
+	}
+	evt.preventDefault();
+}
+
+function silence(){
+	soundOn = !soundOn;
+	mySound.stop();
+	// background music stop
+	if(soundOn){
+		backgroundMusic = new sound("Assets/backgroundMusic.mp3", 0.2);
+		backgroundMusic.play();
+		backgroundMusic.sound.loop = true;
+	} else backgroundMusic.stop();
+}
+
+var soundFiles = [
+	"Assets/boink.mp3",
+	"Assets/boink2.mp3",
+	"Assets/boink3.mp3",
+];
+
+
+
+
+
+	
+const canvas = document.getElementById("canvaz");
+const c		 = canvas.getContext("2d");
+const CWIDTH = canvas.width;
+const CHEIGHT= canvas.height;
+const CLEARCOLOUR = "rgba(0, 0, 0, 0.2)";
+//const PARTICLECOLOUR = "rgb(173,255,47)"; //"rgba(0,255,255, 0.9)";
+//const PLAYERCOLOUR = "rgba(127,255,212, 0.5)";
+
+
+
+
+// GAME CONSTS
+const GRAV = 1.9;
+const MAXPARTICLES = 10;
+
+
+// HELP FUNCTIONS
+function clearScreen(){
+	c.fillStyle= CLEARCOLOUR;
+	c.fillRect(0, 0, CWIDTH, CHEIGHT);
+}
+
+function sound(src, vol) {
+    this.sound = document.createElement("audio");
+    this.sound.src = src;
+    this.sound.setAttribute("preload", "auto");
+    this.sound.setAttribute("controls", "none");
+    this.sound.style.display = "none";
+	this.sound.volume = vol;
+    document.body.appendChild(this.sound);
+    this.play = function(){
+		if(soundOn){
+			this.sound.currentTime = 0.2;
+			this.sound.play();
+		} else this.sound.pause();
+    }
+    this.stop = function(){
+        this.sound.pause();
+    }    
+}
+
+
+
+
+// OO FUNCTIONS
+function Particle(x, y, id, magnify, burst){
+		this.x = x;
+		this.y = y;
+		this.size = Math.random()* Math.sqrt((Math.sqrt(magnify*magnify)+ Math.sqrt(burst*burst)))*0.6 + 1;
+		this.vX = ((Math.random() *12 - 6)+ burst/70) * magnify * 0.1;
+		this.vY = (Math.random() * 10 +10) * magnify * 0.1;
+		this.timer = Math.random() * 50 + 100;
+		this.life = Math.random() * 100 + 500;
+		this,id = id;
+		
+		this.draw = function(dt){
+			if(this.timer <= 0 && this.size > 2){
+				this.size -= 0.08;
+			}else{
+				this.timer--;
+			}
+			
+			if(this.size <= 2){
+				this.life--;
+			}
+			
+			
+			
+			this.x += this.vX * dt;
+			this.y += this.vY * dt;
+			
+			if(this.y >= CHEIGHT-this.size){
+				this.y = CHEIGHT-this.size;
+				this.vY *= -0.3;
+				this.vX *= 0.8;
+			}
+			
+			if(this.x >= CWIDTH-this.size){
+				this.x = CWIDTH-this.size;
+				this.vX *= -0.3;
+				this.vY *= 0.8;
+			}
+			
+			if(this.x <= 0){
+				this.x = 0;
+				this.vX *= -0.3;
+				this.vY *= 0.8;
+			}
+			
+			this.vY += GRAV;
+			c.fillStyle = col.set(0);//PARTICLECOLOUR;
+			c.fillRect(this.x, this.y, this.size, this.size);
+		}
+	
+};
+
+
+var mySound = new sound("Assets/reverbDunk.mp3", 1.0);
+var backgroundMusic = new sound("Assets/backgroundMusic.mp3", 0.2);
+
+
+const SOUNDTRIGGER = 300;
+function Object(){
+	this.spd = 10;
+	this.vY = 0;
+	this.vX = 0;
+	this.x = CWIDTH/2;
+	this.y = CHEIGHT/2;
+	this.size = 20;
+	this.mass = 0.6//(Math.random() * 9 +1)/10;
+	this.particles = {};
+	this.particleIndex = 0;
+
+	//	update then draw me
+	this.draw = function(dt){
+		this.y  += this.vY 	* dt;
+		this.x  += this.vX 	* dt;
+		
+		
+		
+		
+		if(this.y >= CHEIGHT-this.size){
+			
+			
+			this.y = CHEIGHT-this.size;
+			if(this.vX > SOUNDTRIGGER || this.vX < -SOUNDTRIGGER || this.vY > SOUNDTRIGGER){
+				mySound = new sound(soundFiles[Math.floor(Math.random()*soundFiles.length)], 1.0);
+				
+				mySound.play();
+			}
+			if(this.vY > 2){
+				// new Particlesystem
+				for(var i=0; i<MAXPARTICLES; i++){
+					this.particles[this.particleIndex] 
+					= new Particle(this.x+this.size/2, this.y+this.size/2, this.particleIndex, this.vY, this.vX);
+					this.particleIndex++;
+				}
+			}
+			this.vY *= -this.mass;	
+			this.vX *= this.mass/2;
+		}
+		
+		if(this.x >= CWIDTH-this.size){
+			
+			
+			this.x = CWIDTH-this.size;
+			
+			if(this.vX > SOUNDTRIGGER || this.vY > SOUNDTRIGGER){
+				mySound = new sound(soundFiles[Math.floor(Math.random()*soundFiles.length)], 1.0);
+				mySound.play();
+			}
+			if(this.vX > 2 || this.vX < -2){
+				// new Particlesystem
+				for(var i=0; i<MAXPARTICLES; i++){
+					this.particles[this.particleIndex] 
+					= new Particle(this.x+this.size/2, this.y+this.size/2, this.particleIndex, this.vY, this.vX);
+					this.particleIndex++;
+				}
+			}
+			this.vX *= -this.mass;	
+		}
+		
+		
+		if(this.x <= 0){
+			
+			this.x = 0;
+			
+			if(this.vX > SOUNDTRIGGER || this.vX < -SOUNDTRIGGER || this.vY > SOUNDTRIGGER){
+				mySound = new sound(soundFiles[Math.floor(Math.random()*soundFiles.length)], 1.0);
+				mySound.play();
+			}
+			if(this.vX > 2 || this.vX < -2){
+				// new Particlesystem
+				for(var i=0; i<MAXPARTICLES; i++){
+					this.particles[this.particleIndex] 
+					= new Particle(this.x+this.size/2, this.y+this.size/2, this.particleIndex, this.vY, this.vX);
+					this.particleIndex++;
+				}
+			}
+			this.vX *= -this.mass;	
+		}
+		if(controller.trim) {this.spd = GRAV + 0.1;} else if(controller.boost){this.spd= 30;} else {this.spd = 10;}
+		if(controller.up) {this.vY -= this.spd;}
+		if(controller.left) {this.vX -= this.spd;}
+		if(controller.down) {this.vY += this.spd;}
+		if(controller.right) {this.vX += this.spd;}
+		this.vY += GRAV;
+		c.fillStyle = col.set(1); // PLAYERCOLOUR;
+	//	console.log(this.y);
+		c.fillRect(this.x, this.y, this.size, this.size);
+		
+		for(var i in this.particles){
+				this.particles[i].draw(dt);
+				if(this.particles[i].life <= 0){
+					delete this.particles[i];
+				}
+		}
+	}
+};
+
+var ob = new Object();
+
+//	GAME LOOP
+let lastTime = 0;
+
+function update(cc){
+	clearScreen();
+	if(isNaN(cc)) cc = 0;
+	const dt = (cc - lastTime)/1000;
+	lastTime = cc;
+	
+	ob.draw(dt);
+	requestAnimationFrame(update);
+}
+
+update();
+	
+	</script>
+<br>
+<a href="index.html">Back</a>
+<h2>How to play</h2>
+<pre>
+WASD/left-up-right-down-keys to move
+Hold SHIFT to move slower.
+Hold M-key to boost.
+Z-key to change colour theme.
+Q-key to toggle sound on/off.
+</pre>
+</body>
+</html>

@@ -1,0 +1,56 @@
+body {
+	padding:0px;
+	background:#888;
+	font-size:1.5em;
+	font-family:helvetica;
+}
+
+ul {
+	list-style-type:none;
+	
+}
+
+li {
+	
+	font-family:helvetica;
+}
+
+h1 {
+	opacity:1;
+	color:#333;
+	font-family:courier;
+	font-weight:1000;
+}
+
+b {
+	font-size:1.1em;
+
+}
+
+canvas {
+	padding:0px 0px 0px 0px;
+	background:black;
+}
+
+a {
+	text-decoration:none;
+	color:purple;
+	
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

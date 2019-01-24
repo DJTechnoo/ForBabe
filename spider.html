@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Purposeless Spider</title>
+	<link href="styles/main.css" rel="stylesheet" type="text/css"/>
+</head>
+
+<body>
+	<canvas id="canvas" height="512" width="1024"></canvas>
+	<script>
+
+
+const canvas = document.getElementById("canvas");
+const      c = canvas.getContext("2d");
+const HEIGHT = canvas.height;
+const WIDTH  = canvas.width;
+
+// listeners
+window.addEventListener("keydown", keyboardHandler);
+window.addEventListener("keyup", keyboardHandler);
+
+var ctrl = {
+	l : false,
+	r : false,
+	f : false,
+	b : false,
+	fire : false,
+
+	l2 : false,
+	r2 : false,
+	f2 : false,
+	b2 : false,
+
+}
+
+
+const cols = [
+	"#9541f4",
+	"#ba98e0",
+	"#c918a8",
+	"#c91888"
+];
+
+
+
+function keyboardHandler(evt)
+{
+	var state = (evt.type == "keydown")? true : false;
+	switch(evt.key)
+	{
+		case 'a': ctrl.l = state; break; //rec.rotate(-0.1); break;
+		case 'w': ctrl.f = state; break; //rec.updateTarget(200); break;
+		case 'd': ctrl.r = state; break; //rec.rotate(0.1); break;
+		case 's': ctrl.b = state; break; //rec.updateTarget(-200); break;
+		case 'j': ctrl.l2 = state; break; //rec.rotate(-0.1); break;
+		case 'i': ctrl.f2 = state; break; //rec.updateTarget(200); break;
+		case 'l': ctrl.r2 = state; break; //rec.rotate(0.1); break;
+		case 'k': ctrl.b2 = state; break; //rec.updateTarget(-200); break;
+		case 'c': ctrl.fire = state; break;
+	}	
+}
+
+
+function control(p)
+{
+	if(ctrl.l) p.rotate(-0.1);
+	if(ctrl.r) p.rotate(0.1);
+	if(ctrl.f) p.updateTarget(3);
+	if(ctrl.b) p.updateTarget(-3);
+	if(ctrl.fire) fire();
+}
+
+
+function control2(p)
+{
+	if(ctrl.l2) p.rotate(-0.1);
+	if(ctrl.r2) p.rotate(0.1);
+	if(ctrl.f2) p.updateTarget(3);
+	if(ctrl.b2) p.updateTarget(-3);
+	//if(ctrl.fire) fire();
+}
+
+//------- VECTOR CLASS ---------------
+function vec(x, y)
+{
+	this.x = x;
+	this.y = y;
+}
+
+vec.prototype.add = function(v)
+{
+	return new vec( this.x + v.x,
+			this.y + v.y);
+}
+
+
+vec.prototype.sub = function(v)
+{
+	return new vec( this.x - v.x,
+			this.y - v.y);
+}
+
+
+vec.prototype.scale = function(f)
+{
+	this.x *= f;
+	this.y *= f;
+}
+
+
+function interval(s, h)
+{
+	return Math.random()*(h-s) + s;
+}
+
+
+
+
+function clear()
+{
+	c.fillStyle = "rgba(0,0,0,0.5)";
+	c.fillRect(0, 0, WIDTH, HEIGHT);
+}
+
+const STEP = 20;
+function Rect(x, y, s, col){
+	this.pos = new vec(x, y);
+	this.vel = new vec(0, 0);
+	this.s = s;
+	this.rot = 0;
+	this.rotSpd = (1/(this.s * this.s))*3;
+	this.col = col;
+	this.target = new vec(  interval(50, 450),
+				interval(50, 450));
+	this.strength = 0.04;
+	this.drag =	0.94;
+	this.force = new vec(0, 0);
+
+
+	this.updateTarget = function(spd)
+	{
+		this.target.x += Math.cos(this.rot * Math.PI/4) * spd; // dt
+		this.target.y += Math.sin(this.rot * Math.PI/4) * spd; // dt
+		
+	}
+
+	this.backForce = function()
+	{
+		this.target.x -= Math.cos(this.rot * Math.PI/4) * 1; // dt
+		this.target.y -= Math.sin(this.rot * Math.PI/4) * 1; // dt
+		
+	}
+
+
+	this.rotate = function(r)
+	{
+
+		this.rot += r; // dt
+	}
+
+
+	this.update = function()
+	{
+		this.force = this.target.sub(this.pos); 
+		this.force.scale(this.strength);
+		this.vel.scale(this.drag);
+		this.vel = this.vel.add(this.force);
+		this.pos = this.pos.add(this.vel);
+		//this.rot += this.rotSpd;
+
+		c.save();
+		c.translate(this.pos.x+this.s/2, this.pos.y+this.s/2);
+		c.rotate(this.rot * Math.PI/4);
+		c.fillStyle = this.col;
+		c.fillRect(-this.s/2, -this.s/2, this.s, this.s);
+		c.restore();
+
+	}
+}
+
+const G = 0.1;
+function Bullet(x, y, r)
+{
+	this.s = 10;
+	this.pos = new vec(x+ rec.s/2-this.s/2, y+rec.s/2-this.s/2);
+	this.rot = r + (interval(-0.10, 0.05));
+	this.SPD = 11;
+	this.relV = new vec(Math.cos(this.rot * Math.PI/4) * rec.vel.x, Math.sin(this.rot * Math.PI/4) * rec.vel.y);
+	this.forces = new vec(0, 0);
+	this.shrink = interval(0.04, 0.1);
+	this.dead = false;
+	this.col = cols[Math.floor(Math.random()*cols.length)];
+
+	this.draw = function()
+	{
+		
+		this.pos.x += Math.cos(this.rot * Math.PI/4) * (this.relV.x + this.SPD); // dt
+		this.pos.y += Math.sin(this.rot * Math.PI/4) * (this.relV.y + this.SPD); // dt
+		this.pos.y += this.forces.y;  // dt
+		this.forces.y += G;
+		c.save();
+		c.translate(this.pos.x+this.s/2, this.pos.y+this.s/2);
+		c.rotate(this.rot * Math.PI/4);
+		c.fillStyle = this.col;
+		c.fillRect(-this.s/2, -this.s/2, this.s, this.s);
+		c.restore();
+		
+		if(!this.dead && this.s >= 1){
+			this.s -= this.shrink;
+		}
+		if(!this.dead && this.s <= 1){
+			this.dead = true;
+		}
+			
+	}
+}
+
+var bullets = [];
+function fire()
+{
+	bullets.push(new Bullet(rec.pos.x, rec.pos.y, rec.rot));
+	rec.backForce();
+}
+
+
+
+function Line(ob){
+
+	this.pos1 = new vec(rec.pos.x, rec.pos.y);	
+	this.pos2 = new vec(ob.pos.x, ob.pos.y);
+
+	this.draw = function(){
+		this.pos1 = rec.pos;	
+		this.pos2 = ob.pos;
+
+		c.strokeStyle = "lime";
+		c.beginPath();
+		c.moveTo(this.pos1.x + rec.s/2, this.pos1.y + rec.s/2);
+		c.lineWidth = 0.5;
+		c.lineTo(this.pos2.x + ob.s/2, this.pos2.y + ob.s/2);
+		c.stroke();
+	}
+
+}
+
+
+
+
+
+var rec = new Rect(100, 100, 30, "#42f4a1");
+var l = [];
+var lines = [];
+for(let i = 0; i < 100; i++)
+{
+	l.push(new Rect(interval(-2000, 1000),
+			interval(-2000, 1000), 
+			interval(5, 15),
+			"grey")
+			);
+}
+
+
+for(let i in l)
+{
+	lines.push(new Line(l[i]));
+}
+
+
+//var line = new Line(l[2]);
+
+
+function update()
+{
+	clear();
+	control(rec);
+	for(let i in l)control2(l[i]);
+	for(let i in l)l[i].update();
+
+	for(let i in lines)lines[i].draw();
+
+	rec.update();
+	for(let i = bullets.length-1; i >= 0; i--)
+		if(bullets[i].dead) bullets.splice(i, 1);
+	for(let i in bullets) bullets[i].draw();
+
+	
+
+	requestAnimationFrame(update);
+	
+}
+
+update();
+
+
+
+	</script>
+<br>
+<a href="index.html">Back</a>
+<h2>How to play</h2>
+<pre>
+<b>[W/S]</b>   Forward/Backward
+<b>[A/D]</b>   Steer Left/Right
+<b>  [C]</b>   Shoot 
+</pre>
+
+</body>
+
+
+</html>

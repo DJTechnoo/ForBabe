@@ -1,0 +1,348 @@
+<html>
+<head>
+	<title>Cute Typing Snake</title>
+	<link href="styles/main.css" rel="stylesheet" type="text/css"/>
+</head>
+<body>
+<canvas id = "firstCanvas" width = "1024" height = "512"></canvas>
+
+
+<script>
+
+
+var gUp = false;
+var gLeft = false;
+var gRight = false;
+var gDown = false;
+var taillength = 1;
+
+
+var canvas;
+
+
+
+var game;
+var targSpdX = 0;
+var targSpdY = 0;
+howPlay = true;
+
+const LEFT = 37;
+const UP = 38;
+const RIGHT = 39;
+const DOWN = 40;
+const MAXSPD = 5;
+
+var ler = 0.07;
+var bsize = 50;
+var spd = 0.004;
+var xx = 50;
+var yy = 600/2 - bsize/2;
+var size = 2;
+var xSpd = 0;
+var ySpd = 0;
+var fx;
+var fy;
+var gx;
+var gy;
+var musx = 0;
+var musy = 0;
+var blurLerp = 10;
+
+//	some size related stuffzz
+
+var targSize;	// the target size
+var currSize = 100;	// the current size
+var growSpd = 0;
+var grow = true;
+var shrink = false;
+
+ 
+
+function Letter(name){
+	
+	
+	this.let = name;
+	this.x = 1000;
+	this.y = 0;
+	
+	
+	this.lrpx = function(g, n)
+	{
+		this.x = lerp(this.x, g, n);
+			
+	}
+	this.lrpy = function(g, n)
+	{
+		this.y = lerp(this.y, g, n);
+			
+	}
+};
+
+
+var tail = [];
+var deleted = [];
+tail.push(new Letter("^_^"));
+var last = new Letter(("n_n"));
+
+
+
+	// -------------
+	// MOUSEPOS
+	// -------------
+function getMouse(evt){
+	var rect = canvas.getBoundingClientRect();
+	var root = document.documentElement;
+	musx = evt.clientX - rect.left - root.scrollLeft;
+	musy = evt.clientY - rect.top - root.scrollTop;
+	
+}
+
+function keyPressed(evt){
+	if(evt.keyCode == 65)
+	tail.push(new Letter("A"));
+	if(evt.keyCode == 66)
+	tail.push(new Letter("B"));
+	if(evt.keyCode == 67)
+	tail.push(new Letter("C"));
+	if(evt.keyCode == 68)
+	tail.push(new Letter("D"));
+	if(evt.keyCode == 69)
+	tail.push(new Letter("E"));
+	if(evt.keyCode == 70)
+	tail.push(new Letter("F"));
+	if(evt.keyCode == 71)
+	tail.push(new Letter("G"));
+	if(evt.keyCode == 72)
+	tail.push(new Letter("H"));
+	if(evt.keyCode == 73)
+	tail.push(new Letter("I"));
+	if(evt.keyCode == 74)
+	tail.push(new Letter("J"));
+	if(evt.keyCode == 75)
+	tail.push(new Letter("K"));
+	if(evt.keyCode == 76)
+	tail.push(new Letter("L"));
+	if(evt.keyCode == 77)
+	tail.push(new Letter("M"));
+	if(evt.keyCode == 78)
+	tail.push(new Letter("N"));
+	if(evt.keyCode == 79)
+	tail.push(new Letter("O"));
+	if(evt.keyCode == 80)
+	tail.push(new Letter("P"));
+	if(evt.keyCode == 81)
+	tail.push(new Letter("Q"));
+	if(evt.keyCode == 82)
+	tail.push(new Letter("R"));
+	if(evt.keyCode == 83)
+	tail.push(new Letter("S"));
+	if(evt.keyCode == 84)
+	tail.push(new Letter("T"));
+	if(evt.keyCode == 85)
+	tail.push(new Letter("U"));
+	if(evt.keyCode == 86)
+	tail.push(new Letter("V"));
+	if(evt.keyCode == 87)
+	tail.push(new Letter("W"));
+	if(evt.keyCode == 88)
+	tail.push(new Letter("X"));
+	if(evt.keyCode == 89)
+	tail.push(new Letter("Y"));
+	if(evt.keyCode == 90)
+	tail.push(new Letter("Z"));
+	if(evt.keyCode == 189)
+	tail.push(new Letter("-"));
+	if(evt.keyCode == 32)
+	tail.push(new Letter("___"));
+
+	if(evt.keyCode == 17)
+	{
+		if(howPlay)
+			howPlay = false;
+		else
+			howPlay = true;
+	}
+
+	if(evt.keyCode == 38)
+	{	
+		if(grow)
+		 
+			grow = false;
+		else	
+			grow = true;
+	}
+
+	if(evt.keyCode == 13 || evt.keycode == 190)
+		taillength = tail.length;
+
+	if(evt.keyCode == 190)
+	tail.push(new Letter("."));
+	if(evt.keyCode == 8 && taillength > 1){
+		deleted.push(tail[tail.length-1]); 	// add to deleted
+		tail.splice(-1, 1);	// remove last element
+		taillength = tail.length;
+	}
+	
+	
+	evt.preventDefault();
+}
+
+function keyReleased(evt){
+	
+}
+
+//---------MAIN----------------------------
+	
+window.onload = function(){
+
+	canvas = document.getElementById('firstCanvas');
+
+	game = canvas.getContext('2d');
+	setInterval(gameLoop, 1000/60);
+	canvas.addEventListener('mousemove', function(evt){ getMouse(evt);});
+	document.addEventListener('keydown', keyPressed);
+	document.addEventListener('keyup', keyReleased);	
+}
+	
+	// -------------
+	// THE GAME LOOP
+	// -------------
+function gameLoop(){
+	update();
+	drawStuff();
+}
+
+
+	// ------
+	// UPDATE
+	// ------
+function update(){
+
+
+
+// THE HEAD	
+	
+	xx = lerp(xx, musx, ler);
+	yy = lerp(yy, musy, ler);
+	
+// ALL LETTERS	
+	
+	tail[0].lrpx(xx,ler); 
+	tail[0].lrpy(yy, ler);
+	for(var i = 1; i < taillength; i++){
+		tail[i].lrpx(tail[i-1].x, ler);
+		tail[i].lrpy(tail[i-1].y, ler);		
+	}
+
+// LAST ONE 
+	last.lrpx(tail[taillength-1].x, ler);
+	last.lrpy(tail[taillength-1].y, ler);
+
+// DELETED LETTERS
+	if(deleted.length > 0)
+		for(var i = 0; i < deleted.length; i++){
+			deleted[i].lrpx(i*10-30, ler/3);
+			deleted[i].lrpy(100, ler/3);
+			if(deleted[i].x <= 0 )
+				deleted.shift();	
+			
+						
+		}
+
+//	GROW STUFF
+	
+	if(grow) targSize = bsize;
+
+	else
+		targSize = bsize*2;
+
+	var strength = 0.08;
+	var drag = 0.9;
+
+	var force = targSize - currSize;
+	force *= strength;
+	growSpd *= drag;
+	growSpd += force;
+	currSize += growSpd;
+	
+	
+}
+
+
+	// -----
+	// DRAW
+	// -----
+function drawStuff(){
+
+// BACKGROUND
+	game.fillStyle = "#003d4d";				// BACKGROUND COLOUR
+	game.fillRect(0,0, canvas.width, canvas.height);
+
+	game.shadowBlur = 50;
+	game.shadowColor = "#99ffff";
+// TAIL LETTERS
+
+	game.fillStyle = "#00ffff";
+	game.font = "10px Arial";				// ACTIVE LETTERS COLOUR
+	game.fillRect(tail[0].x-12, tail[0].y-12, 24, 24);	 
+	for(var i = 1; i < taillength; i++){
+		game.fillText(tail[i].let, tail[i].x-6, tail[i].y+6);
+	}
+
+// LAST
+	//game.fillText(last.let, last.x, last.y);
+	game.fillRect(last.x-10, last.y-10, 20, 20);
+
+// HEAD
+	game.shadowBlur = 50;
+	
+					// HEAD COLOUR
+	game.fillRect(xx-currSize/2, yy-currSize/2, currSize, currSize);
+
+// FACE
+	game.fillStyle = 'DarkSlateGrey ';			// EYES AND MOUTH COLOUR
+	game.strokeText("Q", xx-currSize/2+4, yy+10+5);
+	game.strokeText("Q", xx+currSize/2 - 12, yy+10+5);
+	game.strokeText("   A  ", xx-10-3, yy+currSize/2 - 6);
+	
+
+		
+// DELETED ITEM	
+	if(deleted.length > 0){
+		game.fillStyle = 'pink';						// AFTER BACKSPACE
+		for(var i = 0; i < deleted.length; i++)
+			game.fillText(deleted[i].let, deleted[i].x, deleted[i].y);
+	}
+
+	if(howPlay)
+	{
+		game.font = "20px Georgia";
+		game.fillStyle = 'white';
+		game.shadowBlur = 0;
+		game.fillText("Mouse to move.", 10, 20);
+		game.fillText("Type anything, then press ENTER", 10, 40);
+		game.fillText("Backspace to remove last letter", 10, 60);
+		game.fillText("Press up to toggle size (cute)", 10, 80);
+		game.font = "15px Georgia";
+		game.fillText("press Ctrl to hide this", 10, 100); 
+		game.fillStyle = 'grey';
+		game.fillText("Askel & Katt", 20, 600-20 );
+	}
+
+	
+}
+
+			// LERP
+function lerp(s, g, n)
+{
+	if((s < g-0.1)|| (s > g+0.1)) return (g-s)*n + s;		
+	return g;
+}
+
+</script>
+<br>
+<a href="index.html">Back</a>
+</body>
+
+
+</html>

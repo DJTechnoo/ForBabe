@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>The Recursive Tree</title>
+	<link href="styles/main.css" rel="stylesheet" type="text/css"/>
+</head>
+<body>
+	<canvas id="canvas" width="1024" height="512"></canvas>
+	<script type="text/javascript">
+		
+
+//------- Javascript Starts Here ----------------------
+
+const canvas = document.getElementById("canvas");
+const WIDTH  = canvas.width;
+const HEIGHT = canvas.height;
+const c 	 = canvas.getContext("2d");
+
+
+window.addEventListener("keydown", keyboardHandler);
+window.addEventListener("keyup", keyboardHandler);
+
+var ctrl = {
+	left : false,
+	up   : false,
+	right: false,
+	down : false,
+	rot  : false,
+	rotC : false,
+	rot2  : false,
+	rotC2 : false
+};
+
+
+
+function keyboardHandler(evt)
+{
+	var state = (evt.type == "keydown")? true : false;
+	switch(evt.key)
+	{
+		case 'q': ctrl.left 	= state; break;
+		case 'a': ctrl.up  		= state; break;
+		case 'e': ctrl.right 	= state; break;
+		case 'd': ctrl.down 	= state; break;
+		case 'i': ctrl.rot 		= state; break;
+		case 'j': ctrl.rotC		= state; break;
+		case 'k': ctrl.rot2 	= state; break;
+		case 'u': ctrl.rotC2	= state; break;
+		case 'm': if(evt.type == "keydown") reset();
+	}
+}
+
+
+
+function clear()
+{
+	c.fillStyle = "rgba(0, 0, 0, 0.2)";
+	c.fillRect(0, 0, WIDTH, HEIGHT);
+}
+
+
+
+function Line(x1, y1, x2, y2, thick)
+{
+	this.x1 = x1;
+	this.y1 = y1;
+	this.x2 = x2;
+	this.y2 = y2;
+	this.thick = thick;
+
+	
+}
+
+Line.prototype.set = function(xx1, yy1, xx2, yy2, thick2)
+{
+	this.x1 = xx1;
+	this.y1 = yy1;
+	this.x2 = xx2;
+	this.y2 = yy2;
+	this.thick = thick2;
+}
+
+
+Line.prototype.draw = function()
+{
+	c.strokeStyle = "white";
+	c.beginPath();
+	c.moveTo(this.x1, this.y1);
+	c.lineWidth = this.thick;
+	c.lineTo(this.x2, this.y2);
+	c.stroke();
+}
+
+
+function tree(len, thick)
+{
+	//if(thick < 0.015) thick = 0.015;
+	
+	line.set(0, 0, 0, - len, thick);
+	line.draw();
+	c.translate(0, -len);
+	if(len > 4 ){
+		c.save();
+		c.rotate(angle * Math.PI / 180);
+		tree(len * rightBranch, thick * 0.65);
+		c.restore();
+		c.save();
+		c.rotate((angle2)* Math.PI / 180);
+		tree(len * leftBranch, thick * 0.65);
+		c.restore();
+	}
+
+	
+}
+
+var leftBranch = 0.57;
+var rightBranch = 0.68;
+var angle = 23;
+var angle2 = -18;
+var line = new Line(50, 200, 300, 300, 10);
+
+function reset()
+{
+	leftBranch = 0.0;
+	rightBranch = 0.0;
+	angle = 45;
+	angle2 = -45;
+}
+
+function treeInstance(x, y)
+{
+	this.x = x;
+	this.y = y;
+	this.draw = function()
+	{
+		c.save();
+		c.translate(this.x, this.y);
+		tree(90, 1);
+		c.restore();
+	}
+}
+
+var o = new treeInstance(WIDTH/2, HEIGHT-100);
+var o2 = new treeInstance(100, 400);
+
+const MAXBRANCH = 0.75;
+//const MAXBRANCH = 1.22;
+
+function update()
+{
+
+	
+	clear();
+	if(ctrl.up 	  && leftBranch > 0) 			leftBranch -= 0.001;
+	if(ctrl.down  && leftBranch > 0) 			rightBranch -= 0.001;
+	if(ctrl.left  && leftBranch < MAXBRANCH)	leftBranch += 0.001;
+	if(ctrl.right && rightBranch < MAXBRANCH)	rightBranch += 0.001;
+	
+	/*if(ctrl.up 	  && leftBranch > 0) 			leftBranch -= 0.001;
+	if(ctrl.down  && leftBranch > 0) 			rightBranch -= 0.001;
+	if(ctrl.left  && ((leftBranch) < (MAXBRANCH+(MAXBRANCH - rightBranch)/2)))	leftBranch += 0.001;
+	if(ctrl.right && ((rightBranch) < (MAXBRANCH+(MAXBRANCH - leftBranch)/2)))	rightBranch += 0.001;
+	*/
+	if(ctrl.rot)	angle += 0.1;
+	if(ctrl.rotC)	angle -= 0.1;
+	if(ctrl.rot2)	angle2 += 0.1;
+	if(ctrl.rotC2)	angle2 -= 0.1;
+	
+	o.draw();
+	//o2.draw();
+
+	
+
+
+
+	requestAnimationFrame(update);
+}
+
+update();
+
+
+
+	</script>
+<br>
+<a href="index.html">Back</a>
+<h2>How to play</h2>
+<pre>
+<b>[Q+E]</b>   to grow ALL branches        <b>[A+D]</b> to shrink    
+<b>  [Q]</b>   to grow all LEFT branches   <b>  [A]</b> to shrink 	
+<b>  [E]</b>   to grow all RIGHT branches  <b>  [D]</b> to shrink 
+<b>[U+I]</b>   to open the branches        <b>[J+K]</b> to close
+<b>  [M]</b>   to reset tree 
+</pre>
+</body>
+</html>

@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>The Rain Goddess</title>
+	<link href="styles/main.css" rel="stylesheet" type="text/css"/>
+</head>
+<body>
+<canvas id="canvas" height="512" width="1024"></canvas>
+<script>
+
+
+const CANVAS = document.getElementById("canvas");
+CANVAS.style.cursor = "none";
+const C      = CANVAS.getContext("2d");
+const W      = CANVAS.width;
+const H      = CANVAS.height;
+
+CANVAS.addEventListener("click", onClick);
+CANVAS.addEventListener("mousemove", mouseHandler);
+document.addEventListener("keyup", keyUp);
+
+function keyUp(evt){
+	if(evt.key == 'w'){
+		r.transfer();
+		r.shouldExplode = !r.shouldExplode;
+	}
+	
+	if(evt.key == 'z') r.sortDragon();
+	if(evt.key == 'r') r.randomizeDragon();
+	
+	if(evt.key == 's') splittedDragon = !splittedDragon;
+	if(evt.key == 'a') o.flapLeft();
+	if(evt.key == 'd') o.flapRight();
+	
+	if(evt.key == 'j') o2.flapLeft();
+	if(evt.key == 'l') o2.flapRight();
+}
+//----
+
+
+function rad(d)
+{
+	return d * (Math.PI/ 180 );
+}
+
+const IMPACT = 3;
+const IMPACTV = 1;
+O = function(x, y){
+	this.x = x;
+	this.y = y;
+	this.v = 0;
+	this.s = 2;
+	this.d = 0;
+	this.counter = 1;
+	this.impact = IMPACT;
+	this.leftUsed = false;
+	this.rightUsed = false;
+
+	this.update = function(){
+		this.x += Math.cos(rad(this.d)) * this.v;
+		this.y += Math.sin(rad(this.d)) * this.v;
+		this.d += this.impact * this.counter;
+		this.impact *= 0.97;
+		this.v *= 0.99;
+		//if(this.v < 0) this.v = 0;
+	}
+	
+	this.flapLeft = function(){
+		this.impact = IMPACT;
+		this.counter = -1; 
+		if(!this.leftUsed)this.v += IMPACTV/2;
+		
+		this.rightUsed = false;
+		this.leftUsed = true;
+	}
+	
+	this.flapRight = function(){
+		this.impact = IMPACT;
+		this.counter = 1; 
+		if(!this.rightUsed)this.v += IMPACTV/2;
+		
+		this.rightUsed = true;
+		this.leftUsed = false;
+	}
+	
+	this.draw = function(){
+		square(this.x, this.y, this.s, this.s, "white");
+	}
+}
+
+
+var o = new O(250, 250);
+var o2 = new O(250, 250);
+var splittedDragon = false;
+const LERP = 0.15;
+
+
+//----
+
+function linearInterPolation(x1, x2, t){
+	return x1 + t*(x2-x1);
+}
+
+rgb = function(r, g, b){
+	this.r = r;
+	this.g = g;
+	this.b = b;
+}
+var colours = [
+	new rgb(127,255,212),
+	new rgb(255,105,180),
+	new rgb(127,255,0),
+	new rgb(173,255,47),
+	new rgb(255, 255, 255),
+	new rgb(255, 0, 0),
+	new rgb(0, 255, 0),
+	new rgb(0, 0, 255),
+	new rgb(0, 255, 255),
+	new rgb(255, 0, 255),
+	new rgb(255,255,0)
+];
+
+var mouse = {
+	x:0,
+	y:0,
+	range:50
+};
+
+Col = function(r,g,b){
+	this.r = r;
+	this.g = g;
+	this.b = b;
+	
+	this.col = "rgb(" + this.r.toString() + ", " + this.g.toString() + ", " + this.b.toString() + ")";
+	
+	this.lerpCol = function(c){
+		this.r = linearInterPolation(this.r, c.r, 0.006);
+		this.g = linearInterPolation(this.g, c.g, 0.006);
+		this.b = linearInterPolation(this.b, c.b, 0.006);
+		this.col = "rgb(" + this.r.toString() + ", " + this.g.toString() + ", " + this.b.toString() + ")";
+	}
+}
+
+function mouseHandler(evt){
+		var rect = canvas.getBoundingClientRect();
+		var root = document.documentElement;
+		mouse.x = evt.clientX - rect.left - root.scrollLeft;
+		mouse.y = evt.clientY - rect.top - root.scrollTop;
+		//o.x = linearInterPolation(o.x, mouse.x, 0.15);
+		//o.y = linearInterPolation(o.y, mouse.y, 0.15);
+		
+}
+
+function onClick(){
+	r.shouldExplode = !r.shouldExplode;
+}
+
+
+function square(x, y, w, h, col){
+	C.fillStyle = col;
+	C.fillRect(x, y, w, h);
+}
+
+function clear(){
+	square(0, 0, W, H, "rgba(0,0,0,0.2)");
+}
+
+const G = 0.1;
+const SUCKPOWER = 0.1;
+const MAXRANGE = 150; 
+const MINRANGE = 50;
+const MAXDRAGON = 200;
+
+var currentDragonColour = 0;
+
+Drop = function(x, y){
+	this.x = x;
+	this.y = y;
+	this.xv = 0;
+	this.yv = 0;
+	this.s = Math.random()*2 + 1;
+	this.dead = false;
+	this.isInside = false;
+	this.depth = Math.random()*1 + 0.3;
+	this.s *= this.depth;
+	this.ground = H - 110 + 66 * this.depth;
+	this.col = new Col(127,255,212);
+	
+	
+
+	this.update = function(){
+		this.y += this.yv*this.depth;
+		this.x += this.xv*this.depth;
+		this.yv += G;
+		this.xv *= 0.95;
+		this.yv *= 0.95;
+		//console.log(this.col.col);
+		this.col.lerpCol(colours[0]);
+		
+		
+		if(this.y >= this.ground)
+			this.dead = true;
+	}
+
+	this.draw = function(){
+		square(this.x, this.y, this.s, this.s, this.col.col);
+	}
+	
+	this.inRange = function(x, y, w, h){
+		return (this.x >= (x-w/2) && this.y >= (y-h/2) &&
+				this.x <= (x+w/2) && this.y <= (y+h/2));
+	}
+	
+	
+	this.lerp = function(l){
+		this.x = linearInterPolation(this.x, l.x, LERP);
+		this.y = linearInterPolation(this.y, l.y, LERP);
+		this.col.lerpCol(colours[currentDragonColour]);
+	}
+	
+
+}
+
+
+Splash = function(x, y, d){
+	this.w = (Math.random()*10 + 2)*d;
+	this.h = 1;
+	this.x = x - this.w/2;
+	this.y = y;
+	this.life = 5;
+	this.dead = false;
+	
+	this.update = function(){
+		this.life--;
+		if(this.life < 0) this.dead = true;
+	}
+	
+	this.draw = function(){
+		square(this.x, this.y, this.w, this.h, "white");
+	}
+}
+
+
+Raindrops = function(intensity, frequency){
+	this.droplets = [];
+	this.splashes = [];
+	this.dragon = [];
+	this.frequency = frequency;
+	this.intensity = intensity;
+	this.counter = 0;
+	this.shouldExplode = false;
+	this.toggleDragon = false;
+	
+	
+	
+	this.update = function(){
+		if(this.counter == this.frequency){
+			for(var i = 0; i < this.intensity; i++){
+				var rx = Math.random()*(W)+30;
+				var ry = Math.random() * -100;
+				this.droplets.push(new Drop(rx, ry));
+			}
+			this.counter = 0;
+		} else 
+			this.counter++;
+
+		this.addForce(-0.01);
+		this.avoid();
+		for(var i = this.splashes.length-1; i >=0; i--){
+			this.splashes[i].update();
+			this.splashes[i].draw();
+			if(this.splashes[i].dead) this.splashes.splice(i,1);
+		}
+		for(var i = this.droplets.length-1; i >=0; i--){
+			this.droplets[i].update();
+			this.droplets[i].draw();
+			if(this.droplets[i].dead){
+				if (this.droplets[i].isInside) mouse.range -= SUCKPOWER;
+				this.splashes.push(new Splash(this.droplets[i].x, this.droplets[i].y+this.droplets[i].s, this.droplets[i].depth));
+				this.droplets.splice(i,1);
+			}
+		}
+		
+		this.updateDragon();
+	}
+	
+	this.updateDragon = function(){
+		if(this.dragon.length > 0){
+			this.dragon[0].lerp(o);
+			this.dragon[0].x = o.x; this.dragon[0].y = o.y;
+			mouse.x = this.dragon[0].x;
+			mouse.y = this.dragon[0].y;
+			
+			for(var i = 1; i < Math.floor(this.dragon.length/2); i++){
+				this.dragon[i].lerp(this.dragon[i-1]);
+			}
+			
+			if(!splittedDragon){
+					this.dragon[Math.floor(this.dragon.length/2)].lerp(this.dragon[Math.floor(this.dragon.length/2)-1]);
+					o2.x = this.dragon[Math.floor(this.dragon.length/2)].x;
+					o2.y = this.dragon[Math.floor(this.dragon.length/2)].y;
+			} else {
+				this.dragon[Math.floor(this.dragon.length/2)].lerp(o2);
+				this.dragon[Math.floor(this.dragon.length/2)].x = o2.x;
+				this.dragon[Math.floor(this.dragon.length/2)].y = o2.y;
+			}
+					
+			
+
+			for(var i = Math.floor(this.dragon.length/2)+1; i < this.dragon.length; i++){
+				this.dragon[i].lerp(this.dragon[i-1]);	
+			}
+			
+			for(var i in this.dragon){
+				this.dragon[i].draw();
+			}
+		}	
+	}
+
+	this.addForce = function(f){
+		var nForceX = 0;
+		var nForceY = 0;
+		for(var i in this.droplets){
+			this.droplets[i].xv += f;
+		}
+	}
+	
+	this.avoid = function(){
+		var nForceX = 0;
+		var nForceY = 0;
+		for(var i in this.droplets){
+			if(this.droplets[i].inRange(mouse.x, mouse.y, mouse.range, mouse.range) &&
+				/*this.droplets[i].depth < 1 && */this.droplets[i].depth > 0.5){
+				if(!this.droplets[i].isInside && mouse.range < MAXRANGE){
+					mouse.range += SUCKPOWER;
+					this.droplets[i].isInside = true;
+				}
+				nForceX = this.droplets[i].x - mouse.x;
+				nForceY = this.droplets[i].y - mouse.y;
+				
+				if(this.shouldExplode){
+					this.droplets[i].xv += nForceX/50;
+					this.droplets[i].yv += nForceY/90;
+				}else{
+					this.droplets[i].xv += -nForceX/(50);
+					this.droplets[i].yv += -nForceY/(90);
+				}
+			 
+			} else if(this.droplets[i].isInside){
+				mouse.range -= SUCKPOWER;
+				if(mouse.range < MINRANGE) mouse.range = MINRANGE;
+				this.droplets[i].isInside = false;
+			}
+		}
+	}
+	
+	this.explode = function(){
+		var nForceX = 0;
+		var nForceY = 0;
+		
+		for(var i in this.droplets){
+				if(this.droplets[i].depth < 1 && this.droplets[i].depth > 0.5){
+				nForceX = this.droplets[i].x - mouse.x;
+				nForceY = this.droplets[i].y - mouse.y;
+				
+				//if(this.droplets[i].y < mouse.y)
+				this.droplets[i].xv += -nForceX/200;
+				//else this.droplets[i].xv += -nForceX/100;
+				this.droplets[i].yv += -nForceY/200;
+				}
+		}
+	}
+	
+	
+	this.transfer = function(){
+		this.toggleDragon = !this.toggleDragon;
+		if(this.toggleDragon){
+			o.x = mouse.x; o.y = mouse.y;
+			currentDragonColour = Math.floor(Math.random()*(colours.length-1)+1);
+			
+			var i = this.droplets.length-1;
+			//if(len > MAXDRAGON) len = MAXDRAGON;
+			var c = 0;
+			while(i >= 0 && !(c >= MAXDRAGON)){ // fix this paradox
+				if(this.droplets[i].inRange(mouse.x, mouse.y, mouse.range, mouse.range) &&
+					/*this.droplets[i].depth < 1 && */this.droplets[i].depth > 0.5){
+					if(mouse.range > MINRANGE)mouse.range -= SUCKPOWER;
+					this.droplets[i].isInside = false;
+					this.dragon.push(this.droplets[i]);
+					this.droplets.splice(i,1);
+					c++;
+				}
+				i--;
+			}
+		}else{
+			for(var i = this.dragon.length-1; i>=0; i--){
+				this.dragon[i].isInside = true;
+				this.droplets.push(this.dragon[i]);
+				this.dragon.splice(i,1);
+			}
+			
+			mouse.x = o.x; mouse.y = o.y;
+			splittedDragon = false;
+		}
+	}
+	
+	this.sortDragon = function(){
+		this.dragon.sort(function(a, b){return b.s - a.s});
+	}
+	
+	
+	this.randomizeDragon = function(){
+		var randomIndex = 0;
+		var temp;
+		for(var i in this.dragon){
+			randomIndex = Math.floor(Math.random()*this.dragon.length);
+			while(randomIndex == i)randomIndex = Math.floor(Math.random()*this.dragon.length);
+			temp = this.dragon[randomIndex];
+			this.dragon[randomIndex] = this.dragon[i];
+			this.dragon[i] = temp;
+		}
+	}
+}
+
+var r = new Raindrops(50, 10);
+
+function increaseRain(){
+	r.intensity += 20;
+}
+
+function decreaseRain(){
+	r.intensity -= 20;
+}
+
+function loop(){
+	clear();
+	r.update();
+	o.update();
+	o2.update();
+	
+	requestAnimationFrame(loop);
+}
+
+requestAnimationFrame(loop);
+
+
+
+
+</script>
+<br>
+<button onClick="increaseRain()">Increase Rain</button>
+<button onClick="decreaseRain()">Decrease Rain</button>
+
+<br>
+
+<h2>How to play</h2>
+<pre>
+<b>[Mouse]</b>  move around   <b>[click]</b> to switch (suck/blow)   
+<b>  [W]</b>   to turn raindrops into dragon  	
+<b>  [A | D]</b>   Press A, D, A, D... to move dragon like a dragon
+<b>  [S]</b>   to split dragon in two parts.         
+<b>  [I | L]</b> to control the other part
+<b>  [R/Z]</b>   to randomize or sort the dragon 
+</pre>
+<br>
+<a href="index.html">Back</a>
+</body>
+
+</html>

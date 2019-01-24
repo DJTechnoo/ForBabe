@@ -1,0 +1,523 @@
+<!DOTCYPE html>
+<html lang = "en">
+<head>
+	<meta charset="UTF-8">
+	<title>Funny Birthday Bubbles</title>
+	<link href="styles/main.css" rel="stylesheet" type="text/css"/>
+</head>
+
+<body>
+<canvas></canvas>
+<script>
+var canvas = document.querySelector('canvas');
+//canvas.width = window.innerWidth;
+//canvas.height = window.innerHeight;
+var high = 512;
+var wide = 1024;
+canvas.height = high;
+canvas.width = wide;
+
+var col = false;
+
+var MAXRAD = 50;
+//var MINRAD = 2;
+var c = canvas.getContext('2d');
+
+var colArrayK = [
+	'#031727',
+	'#126872',
+	'#0B877D',
+	'#18C29C',
+	'#88F9D4',
+];
+
+var colArrayK1 = [
+	'#0D0D0D',
+	'#A6A6A6',
+	'#F2F2F2',
+	'#595956',
+	'#3F403C',
+];
+
+var colArrayK2 = [
+	'#FFEC67',
+	'#210E86',
+	'#5740D3',
+];
+
+var colArrayK3 = [
+	'#121430',
+	'#35478C',
+	'#4E7AC7',
+	'#7FB2F0',
+];
+
+var colArrayK4 = [
+	'#3D7F72',
+	'#191633',
+];
+
+var colArrayK5 = [
+	'#040059',
+	'#C1CDFF',
+	'#0016FF',
+	'#562E7F',
+	'#002FCC',
+];
+
+var colArrayK6 = [
+	'#065C82',
+	'#5FE1FF',
+	'#0694FF',
+	'#123945',
+	'#0088CC',
+];
+
+var colArrayK7 = [
+	'#068582',
+	'#C0C2AF',
+	'#783814',
+	'#07171C',
+];
+
+
+var colArrayK8 = [
+	'#0D2069',
+	'#010030',
+	'#F7FBFB',
+	'#595959',
+	'#242424',
+];
+
+
+var colArrayK9 = [
+	'#042E42',
+	'#8293BA',
+	'#787A6A',
+	'#D1830B',
+	'#E8E7E8',
+];
+
+
+var colArray = [
+	'#9F5FB3',
+	'#A852FF',
+	'#FFA8D3',
+	'#7DE3F4',
+	'#00DBEC',
+];
+
+var colArray2 = [
+	'#031727',
+	'#126872',
+	'#18C29C',
+	'#88F9D4',
+	'#0B877D',	
+];
+
+var colArray3 = [
+	'#CF4232',
+	'#EB7F23',
+	'#FAC023',
+	'#068675',
+	'#6B202E',
+];
+
+var colArray4 = [
+	'#FF12CC',
+	'#4556E8',
+	'#00FFB0',
+	'#AAE80C',
+	'#FFA50D',	
+
+];
+
+var colArray5 = [
+	'#0ACCCA',
+	'#549998',
+	'#26FF82',
+	'#FF668D',
+	'#CC0A9C',	
+
+];
+
+var colArray6 = [
+	'#0D0D0D',
+	'#F2E205',
+	'#D9B504',
+	'#A67D03',
+	'#BFBDBA',	
+
+];
+
+var colArray7 = [
+	'#F57690',
+	'#F5719D',
+	'#F24BA0',
+	'#FFB870',
+	'#F29B79',	
+
+];
+
+var colArray8 = [
+	'#1E621F',
+	'#000000',
+	'#247C26',
+	'#164817',
+	'#1E621F',	
+
+];
+
+var colArray9 = [
+	'#00024B',
+	'#0006D7',
+	'#00048B',
+	'#000498',
+	'#000371',	
+
+];
+
+var colArray10 = [
+	'#103DB2',
+	'#477AFF',
+	'#2E68FF',
+	'#B27F00',
+	'#FFC32E',	
+
+];
+
+var colArray11 = [
+	'#BF5F21',
+	'#7F3F16',
+	'#FF7F2D',
+	'#42210C',
+	'#E57228',	
+
+];
+
+var colArray12 = [
+	'#63EDFF',
+	'#5AE8D1',
+	'#6FFFBF',
+	'#5AE881',
+	'#65FF63',	
+
+];
+
+var colArray13 = [
+	'#FEF0A5',
+	'#502A52',
+	'#33C4C2',
+	'#FF2B82',
+	'#302D2B',	
+
+];
+
+var colArray14 = [
+	'#8A96A6',
+	'#F2E2CE',
+	'#F2B999',
+	'#732C02',
+	'#260B01',	
+
+];
+
+var colArray15 = [
+	'#F37491',
+	'#FE90B4',
+	'#FC84A4',
+	'#E0607E',
+	'#F16888',	
+
+];
+
+var colArray16 = [
+	'#FFC019',
+	'#9812B2',
+	'#D500FF',
+	'#14CC91',
+	'#000000',	
+
+];
+
+var colArray17 = [
+	'#0D0620',
+	'#0C082B',
+	'#0A0924',
+	'#020006',
+	'#050309',	
+
+];
+
+var colArray18 = [
+	'#420000',
+	'#600000',
+	'#790000',
+	'#931111',
+	'#BF1616',	
+
+];
+
+var colArray19 = [
+	'#C1D301',
+	'#76AB01',
+	'#0E6A00',
+	'#083500',
+	'#042200',	
+
+];
+
+var colArray20 = [
+	'#C000B1',
+	'#800076',
+	'#340030',
+	'#410033',
+	'#000000',	
+
+];
+
+var colArray21 = [
+	'#000000',
+	'#1E0000',
+	'#C20000',
+	'#C20000',
+	'#FF0000',	
+
+];
+
+var themes = [
+	colArrayK,
+	colArrayK1,
+	colArrayK2,
+	colArrayK3,
+	colArrayK4,
+	colArrayK5,
+	colArrayK6,
+	colArrayK7,
+	colArrayK8,
+	colArrayK9,
+	colArray,
+	colArray2,
+	colArray3,
+	colArray4,
+	colArray5,
+	colArray6,
+	colArray7,
+	colArray8,
+	colArray9,
+	colArray10,
+	colArray11,
+	colArray12,
+	colArray13,
+	colArray14,
+	colArray15,
+	colArray16,
+	colArray17,
+	colArray18,
+	colArray19,
+	colArray20,
+	colArray21,
+]
+
+var colIndex = 0;
+
+
+var mouse = {
+	x: undefined,
+	y: undefined
+}
+
+window.addEventListener('mousemove', 
+	function(event){
+		//mouse.x = event.x;
+		//mouse.y = event.y;
+		var rect = canvas.getBoundingClientRect();
+		var root = document.documentElement;
+		mouse.x = event.clientX - rect.left - root.scrollLeft;
+		mouse.y = event.clientY - rect.top - root.scrollTop;		
+	});
+
+window.addEventListener('keydown', keyPressed);
+
+
+	
+window.addEventListener('resize', function(){
+	canvas.width = canvas.width;
+	canvas.height = canvas.height;
+});
+
+function Circle(x, y, dx, dy, radius, colour){
+	this.x = x;
+	this.y = y;
+	this.dx = dx;
+	this.dy = dy;
+	this.radius = radius;
+	this.colour = colour;
+	this.orRad = this.radius;
+	
+	this.changeCol = function(nCol){
+		this.colour = nCol;
+	}
+	
+	this.draw = function(){
+		c.beginPath();
+		c.arc(this.x, this.y, this.radius, 0, Math.PI*2, false);
+		c.fillStyle = this.colour;
+		c.fill();
+	}
+	
+	this.update = function(){
+		
+		if(this.x + this.radius > canvas.width || this.x - this.radius <= 0){this.dx *= -1;}
+		this.x += this.dx;
+		
+		if(this.y + this.radius > canvas.height || this.y - this.radius <= 0){this.dy *= -1;}
+		this.y += this.dy;
+		
+		
+		/*if(this.x + this.radius > canvas.width){this.dx = -(Math.sqrt(this.dx*this.dx))} // guaranteed minus
+		if(this.x - this.radius <= 0){this.dx *= -1};
+		
+		if(this.y + this.radius > canvas.height){this.dy = -(Math.sqrt(this.dy*this.dy))} // guaranteed minus
+		if(this.y - this.radius <= 0){this.dy *= -1};
+		this.x += this.dx;
+		this.y += this.dy;*/
+		
+		
+		
+		if(mouse.x - this.x < 50 && mouse.x - this.x > - 50
+			&& mouse.y - this.y < 50 && mouse.y - this.y > - 50){
+			if(this.radius < MAXRAD){this.radius += 2;}
+		} else if(this.radius > this.orRad){
+			this.radius -= 1;
+		}
+		
+		
+		
+		this.draw();
+	}
+	
+}
+
+
+
+var circleArray = [];
+var radMult = 10;
+
+for (var i = 0; i < 800; i++){
+	var radius = Math.random() * radMult + 1;
+	var x = Math.random() * (canvas.width - radius * 2) + radius;
+	var y = Math.random() * (canvas.height - radius * 2) + radius;
+	var dx = (Math.random() - 0.5) * 2;
+	var dy = (Math.random() - 0.5) * 2;
+	var colour = changeTheme(themes[0]);
+	
+	circleArray.push(new Circle(x, y, dx, dy, radius, colour));
+}
+
+function changeTheme(newCol){
+	for(var i = 0; i < circleArray.length; i++){
+		var colour = newCol[Math.floor(Math.random() * newCol.length)];
+		circleArray[i].changeCol(colour);
+	}
+	col = false;
+}
+
+function keyPressed(evt){
+
+	switch(evt.keyCode){
+		case 17:
+				if(!col) {col = true; colIndex += 1; }
+				if (colIndex >= themes.length) colIndex = 0;
+				break;
+		
+		
+		case 38:		// add a new circle XD
+			var radius = Math.random() * radMult + 1;
+			var x = Math.random() * (canvas.width - radius * 2) + radius;
+			var y = Math.random() * (canvas.height - radius * 2) + radius;
+			var dx = (Math.random() - 0.5) * 2;
+			var dy = (Math.random() - 0.5) * 2;
+			var colour = themes[colIndex][Math.floor(Math.random() * themes[colIndex].length)]; // random colour from same theme
+			circleArray.push(new Circle(mouse.x, mouse.y, dx, dy, radius, colour));
+			//console.log(circleArray.length);
+			break;
+		
+		case 39:			// delete all
+			var len = circleArray.length;
+			for(var i = 0; i < len; i++){
+				circleArray.pop();
+				//console.log(circleArray.length);
+			}
+			break;
+			
+		case 37: if(circleArray.length > 0){circleArray.pop();} break;
+		case 68: canvas.width += 10; break;
+		case 65: canvas.width -= 10; break;
+		case 83: canvas.height += 10; break;
+		case 87: canvas.height -= 10;break;
+		case 84: MAXRAD ++; break;
+		case 71: if (MAXRAD > radMult+2){MAXRAD--;} break;
+		case 81: //canvas.height = high; canvas.width = wide; 
+			
+			var len = circleArray.length;
+			for(var i = 0; i < len; i++){
+				circleArray.pop();
+				//console.log(circleArray.length);
+			}
+			
+			for (var i = 0; i < len; i++){
+				var radius = Math.random() * radMult + 1;
+				var x = Math.random() * (canvas.width - radius * 2) + radius;
+				var y = Math.random() * (canvas.height - radius * 2) + radius;
+				var dx = (Math.random() - 0.5) * 2;
+				var dy = (Math.random() - 0.5) * 2;
+				//var colour = colArray[Math.floor(Math.random() * colArray.length)];
+				var colour = changeTheme(themes[colIndex]);
+				
+				circleArray.push(new Circle(x, y, dx, dy, radius, colour));
+			} break; // resize window and randomize pos within window 
+		default: break;
+		
+	
+	}
+	
+
+	evt.preventDefault();
+}
+
+
+function animate(){
+	requestAnimationFrame(animate);
+	c.clearRect(0,0, canvas.width, canvas.height);
+	
+	for(var i = 0; i < circleArray.length; i++){
+		circleArray[i].update();
+	}
+	
+	if(col)
+		changeTheme(themes[colIndex]);
+	
+	//change colour of circleArray[i] if key pressed
+}
+
+animate();
+
+
+
+</script>
+<br>
+<a href="index.html">Back</a>
+<h2>How to play</h2>
+<pre>
+WASD-keys to adjust window size(Hold them)
+Q-key to reset bubbles
+T-key to increase bubble growth size (Hold it)
+G-key to decrease bubble growth size (Hold it)
+up-key to add bubble. Hold to add many
+left-key to delete last bubble.
+right-key to delete everything.
+ctrl-key to change colour themes.
+</pre>	
+</body>
+</html>

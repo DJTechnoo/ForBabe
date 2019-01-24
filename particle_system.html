@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<head>
+	<meta charset="utf-8" />
+	<title>Windy Particles</title>
+	<link href="styles/main.css" rel="stylesheet" type="text/css"/>
+</head>
+<body>
+	<canvas id="canvaz" width="1024" height="512"></canvas>
+	<script>
+
+	var canvas = document.getElementById("canvaz"),
+	c = canvas.getContext("2d");
+	const CHEIGHT = canvas.height;
+	const CWIDTH = canvas.width;
+	document.body.appendChild(canvas);
+	document.addEventListener("keydown", keyPush);
+	document.addEventListener("keyup", keyRelease);
+	
+	
+	function clearScreen(){
+	c.fillStyle= "rgba(0,0,0,0.1)";
+	c.fillRect(0, 0, CWIDTH, CHEIGHT);
+}
+	
+	const WINDSPEED = 0.6;
+	var GRAVITY = 0.3,
+		WIND = 0;
+	var XVEL = canvas.width / 2,
+		YVEL = canvas.height / 2; 
+	
+	function keyPush(evt){
+		switch(evt.keyCode){
+			case 37: WIND = -WINDSPEED;break;
+			case 38: WIND = 0;   break;
+			case 39: WIND = WINDSPEED; break;
+			case 40: WIND = 0;   break;
+			case 65: XVEL += -3; break;
+			case 87: YVEL += -3; break;
+			case 68: XVEL += 3;  break;
+			case 83: YVEL += 3;  break;
+		
+		}
+	
+	}
+	
+	
+
+	
+	
+	function keyRelease(evt){
+		switch(evt.keyCode){
+			case 37: WIND = 0; break;
+			case 38: WIND = 0; break;
+			case 39: WIND = 0; break;
+			case 40: WIND = 0; break;
+		}
+	
+	}
+	
+	
+	
+	
+	
+	particles = {};
+	var particleIndex = 0;
+	
+	function Particle(){
+		this.x = XVEL;
+		this.y = YVEL;
+		this.size = Math.random() * 20 +0;
+		this.vx = Math.random() * 16 -8;
+		this.vy = Math.random() * 10 -10;
+		this.life = 200;
+		this.r = 255;
+		this.g = 255;
+		this.b = 255;
+		this.mass = (Math.random() * 5 +1)/10;
+		
+		particleIndex++;
+		particles[particleIndex] = this;
+		this.id = particleIndex;
+	
+	
+		this.draw = function(dt){
+			if(this.size <= 0){
+				delete particles[this.id];
+			}
+			this.life--;
+			this.x += this.vx * dt, this.y += this.vy * dt;
+			if(this.y >= canvas.height-this.size){
+				this.vy *= -this.mass;
+				this.vx *= 0.2;
+				this.y = canvas.height-this.size;
+			}
+			
+			if((this.size > 4) || (this.life <= 0)){
+				this.size -= 0.1;
+				if((this.size < 4) &&(this.life > 0)){
+					this.size = 4;
+				}
+			}
+			
+			this.vy += GRAVITY;
+			this.vx += WIND * (this.mass*2);//this.vx += WIND *((this.vy*this.vy)/100);
+			this.r = ((this.x + 1000) / (canvas.width + 1000)) * 255; 
+			this.g = ((this.y + 0) / (canvas.height+0)) * 255;
+			c.fillStyle = "rgba("+parseInt(this.r) +"," +parseInt(this.r) +","+parseInt(this.g) + ",0.9)";
+			c.fillRect(this.x, this.y, this.size, this.size);
+		}
+	};
+	
+	
+	
+	
+
+//	GAME LOOP
+let lastTime = 0;
+
+function update(time){
+
+	clearScreen();
+	if(isNaN(time)) time = 0;
+	const dt = (time - lastTime)/100;
+	lastTime = time;
+	
+	c.fillStyle="rgba(0, 0, 0, 0.5)";
+		c.fillRect(0,0, canvas.width, canvas.height);
+		for(var i = 0; i < 4; i++){
+			new Particle();
+		}
+		for(var i in particles){
+			particles[i].draw(dt);
+		}
+	
+	requestAnimationFrame(update);
+}
+
+update();
+	
+	
+	</script>
+
+<br>
+<a href="index.html">Back</a>
+<h2>How to play</h2>
+<pre>
+WASD-keys to move the system
+Left-right-keys to add wind
+</pre>
+</body>
+
+</html>
