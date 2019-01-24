@@ -1,5 +1,11 @@
 <!DOCTYPE html>
 <html>
+<head>
+	<title>The World's Most Powerful Weapon</title>
+	<link href="styles/main.css" rel="stylesheet" type="text/css"/>
+</head>
+
+<body>
 <canvas id="canvas" height="512" width="1024"></canvas>
 <script>
 
@@ -23,6 +29,7 @@ function keyHandler(evt){
 		case 'i': controlls.scu = state; break;
 		case 'k': controlls.scd = state; break;
 		case 's': controlls.pr = state; break;
+		case 'm': if(!state) cam.toggleView(); break;
 	}
 }
 
@@ -263,10 +270,14 @@ var o = new O(10, H-100);
 var bullets = [];
 
 Camera = function(){
+	this.focusOn = "firstbullet";
+	this.viewCount = 0;
+	this.views = ["cannon", "firstbullet", "lastbullet", "target"];
 	this.x=0;
 	this.y=0;
 	this.targetX=0;
 	this.targetY=0;
+	
 	this.follow = function(ob){
 		this.targetX = W/2-ob.x;
 		this.targetY = H/2-ob.y;
@@ -275,6 +286,12 @@ Camera = function(){
 		this.x = lerp(this.x, this.targetX, 0.1);
 		this.y = lerp(this.y, this.targetY, 0.1);
 		c.translate(this.x, this.y);
+	}
+	
+	this.toggleView = function(){
+		this.viewCount++;
+		if(this.viewCount >= this.views.length) this.viewCount = 0;
+		this.focusOn = this.views[this.viewCount];
 	}
 
 }
@@ -312,9 +329,20 @@ function loop(){
 	}
 	
 	c.save();
-	if(bullets.length>0)
+	/*if(bullets.length>0)
 		cam.follow(bullets[0]);
-	else cam.follow(o.aimBullet);
+	else cam.follow(o.aimBullet);*/
+	switch(cam.focusOn){
+		case "cannon": cam.follow(o); break;
+		case "firstbullet": if(bullets.length) cam.follow(bullets[0]);
+							else cam.follow(o.aimBullet); break;
+		case "lastbullet": if(bullets.length) cam.follow(bullets[bullets.length-1]);
+							else cam.follow(o.aimBullet); break;
+		case "target": cam.follow(o.aimBullet); break;
+		default: cam.follow(o);
+	}
+	
+	
 	background.lerp(cam, 0, 4000, 4100);
 	/*background.parallax(cam, 0.999);
 	background2.parallax(cam, 0.99);
@@ -338,6 +366,7 @@ requestAnimationFrame(loop);
 
 
 </script>
+</body>
 
 
 
