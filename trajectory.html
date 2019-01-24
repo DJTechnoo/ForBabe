@@ -293,6 +293,18 @@ Camera = function(){
 		if(this.viewCount >= this.views.length) this.viewCount = 0;
 		this.focusOn = this.views[this.viewCount];
 	}
+	
+	this.update = function(){
+		switch(cam.focusOn){
+			case "cannon": cam.follow(o); break;
+			case "firstbullet": if(bullets.length) cam.follow(bullets[0]);
+								else cam.follow(o.aimBullet); break;
+			case "lastbullet": if(bullets.length) cam.follow(bullets[bullets.length-1]);
+								else cam.follow(o.aimBullet); break;
+			case "target": cam.follow(o.aimBullet); break;
+			default: cam.follow(o);
+		}
+	}
 
 }
 
@@ -332,15 +344,7 @@ function loop(){
 	/*if(bullets.length>0)
 		cam.follow(bullets[0]);
 	else cam.follow(o.aimBullet);*/
-	switch(cam.focusOn){
-		case "cannon": cam.follow(o); break;
-		case "firstbullet": if(bullets.length) cam.follow(bullets[0]);
-							else cam.follow(o.aimBullet); break;
-		case "lastbullet": if(bullets.length) cam.follow(bullets[bullets.length-1]);
-							else cam.follow(o.aimBullet); break;
-		case "target": cam.follow(o.aimBullet); break;
-		default: cam.follow(o);
-	}
+	cam.update();
 	
 	
 	background.lerp(cam, 0, 4000, 4100);
