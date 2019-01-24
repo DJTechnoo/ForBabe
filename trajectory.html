@@ -51,6 +51,13 @@ function square(x, y, w, h, col){
 	c.fillRect(x, y, w, h);
 }
 
+function circle(x, y, r, col){
+	c.strokeStyle = col
+	c.beginPath();
+    c.arc(x, y, r, 0, Math.PI * 2, true)
+	c.stroke();
+}
+
 function clear(){
 	square(0, 0, W, H, "rgba(0,0,0,0.7)");
 }
@@ -159,8 +166,28 @@ Bullet.prototype.draw = function() {
 		c.translate(this.x+this.s/2, this.y+this.s/2);
 		c.rotate(this.rot);
 		
-		square(-this.s/2, -this.s/2, this.s*4, this.s, "lime");
+		square(-this.s/2, -this.s/2, this.s*4, this.s, "rgba(255,255,255,0.6)");
 		c.restore();
+		
+}
+
+Bullet.prototype.drawArrow = function() {
+		
+		c.save();
+		c.translate(this.x+this.s/2, this.y+this.s/2);
+		c.rotate(this.rot);
+		
+		
+		c.beginPath();
+		c.fillStyle = "rgba(255,255,255,0.6)";
+		c.moveTo(this.s*4/2, -2);
+		c.lineTo(this.s*4/2+10, 0);
+		c.lineTo(this.s*4/2, 2);
+		//c.lineTo(this.s*4/2, -2);
+		//c.stroke();
+		c.fill();
+		c.restore();
+		
 }
 
 Bullet.prototype.drawAim = function() {
@@ -169,7 +196,8 @@ Bullet.prototype.drawAim = function() {
 		c.translate(this.x+this.s/2, this.y+this.s/2);
 		c.rotate(this.rot);
 		
-		square(-this.s/2, -this.s/2, this.s*4, this.s, "grey");
+		//square(-this.s/2, -this.s/2, this.s*4, this.s, "grey");
+		circle(-this.s/2, -this.s/2, this.s*4, "red");
 		c.restore();
 }
 
@@ -185,7 +213,14 @@ Bullet.prototype.update = function(){
 
 const ROW = 100;
 const COL = 100;
-const BLOCKSEPARATION = 100;
+const BLOCKSEPARATION = 200;
+
+var randomValues = [];
+function getRandomValues(arr, n){
+	for(let i = 0; i < n; i++)
+		arr.push(Math.random()*1+0.1);
+}
+getRandomValues(randomValues, ROW);
 
 
 Background = function(s, ox, oy){
@@ -200,10 +235,20 @@ Background = function(s, ox, oy){
 		this.y = -lerp(p, l, b.y/l2) + this.offsetY;
 	}
 	
+	this.parallax = function(b, f){
+		this.x = -b.x*f + this.offsetX;
+		this.y = -b.y*f + this.offsetY;
+	}
+	
 	this.make = function(){
 		for(let i = 0; i < ROW; i++){
 			for(let j = 0; j < COL; j++){
-				square(this.x + i*BLOCKSEPARATION, this.y + j*BLOCKSEPARATION, this.s, this.s, "white");
+				square(
+					this.x + i*BLOCKSEPARATION*randomValues[j], 
+					this.y + j*BLOCKSEPARATION*randomValues[j], 
+					this.s*randomValues[j], 
+					this.s*randomValues[j], 
+					"white");
 			}
 		}
 	}
@@ -239,19 +284,21 @@ Rail = function(x, y, sep, s, N){
 	this.y = y;
 	this.sep = sep;
 	this.s = s;
+	this.prop = 100;
 	this.N = N;
 	
 	this.draw = function(){
 		for(let i = 0; i < this.N; i++){
-			square(i*this.sep + this.x, this.y, this.s, this.s, "pink");
+			square(i*this.sep + this.x, this.y-this.s*this.prop/2, this.s, this.s*this.prop, "pink");
 		}
 	}
 }
 
 var cam = new Camera();
-var background = new Background(2,-1000,-1000);
-var background2 = new Background(4,-1000,-1000);
-var rail = new Rail(-40000, H-100, 500, 20, 10000);
+var background = new Background(4,-1000,-1000);
+var background2 = new Background(10,-1000,-1010);
+//var background3 = new Background(4,-1000,-1010);
+var rail = new Rail(-40000, H-100, 500, 5, 10000);
 
 
 function loop(){
@@ -269,10 +316,15 @@ function loop(){
 		cam.follow(bullets[0]);
 	else cam.follow(o.aimBullet);
 	background.lerp(cam, 0, 4000, 4100);
+	/*background.parallax(cam, 0.999);
+	background2.parallax(cam, 0.99);
+	background3.parallax(cam, 0.95);*/
 	background2.lerp(cam, 20, 4000, 4500);
+	
 	background.make();
 	background2.make();
-	for(let i in bullets)bullets[i].draw();
+	//background3.make();
+	for(let i in bullets)bullets[i].drawArrow();
 	//o.preview();
 	o.draw();
 	rail.draw();
