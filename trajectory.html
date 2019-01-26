@@ -16,7 +16,33 @@ const H		 = canvas.height;
 
 document.addEventListener("keydown", keyHandler);
 document.addEventListener("keyup", keyHandler);
+document.addEventListener("mousemove", mouseHandler);
+document.addEventListener("click", click);
 
+var mouse = {
+	x:0,
+	y:0,
+	rx:0,
+	ry:0
+};
+
+var home = false;
+
+
+
+function mouseHandler(evt){
+		var rect = canvas.getBoundingClientRect();
+		var root = document.documentElement;
+		mouse.x = evt.clientX - rect.left - root.scrollLeft;// - cam.x;
+		mouse.y = evt.clientY - rect.top - root.scrollTop ;//- cam.y;
+		//o.x = linearInterPolation(o.x, mouse.x, 0.15);
+		//o.y = linearInterPolation(o.y, mouse.y, 0.15);
+		
+}
+
+function click(){
+	home = !home;
+}
 
 
 
@@ -218,6 +244,17 @@ Bullet.prototype.update = function(){
 		if(this.y >= H) this.dead = true;
 }
 
+Bullet.prototype.home = function(){
+	var fx = this.x - mouse.rx;
+	var fy = this.y - mouse.ry;
+	var len = Math.sqrt(fx * fx + fy * fy);
+	fx /= len;
+	fy /= len;
+	
+	this.vx -= fx * 0.07;
+	this.vy -= fy * 0.07;
+}
+
 const ROW = 100;
 const COL = 100;
 const BLOCKSEPARATION = 200;
@@ -281,11 +318,14 @@ Camera = function(){
 	this.follow = function(ob){
 		this.targetX = W/2-ob.x;
 		this.targetY = H/2-ob.y;
+		
 		//console.log(this.targetY);
 		if (this.targetY < 0) this.targetY = 0;
 		this.x = lerp(this.x, this.targetX, 0.1);
 		this.y = lerp(this.y, this.targetY, 0.1);
 		c.translate(this.x, this.y);
+		mouse.rx = mouse.x - this.x;
+		mouse.ry = mouse.y - this.y;
 	}
 	
 	this.toggleView = function(){
@@ -305,7 +345,6 @@ Camera = function(){
 			default: cam.follow(o);
 		}
 	}
-
 }
 
 Rail = function(x, y, sep, s, N){
@@ -336,30 +375,29 @@ function loop(){
 	o.update();
 	
 	for(let i = bullets.length-1; i >= 0; i--){
+		if(home)bullets[i].home();
 		bullets[i].update();
 		if(bullets[i].dead) bullets.splice(i, 1);
 	}
 	
 	c.save();
-	/*if(bullets.length>0)
-		cam.follow(bullets[0]);
-	else cam.follow(o.aimBullet);*/
 	cam.update();
 	
 	
 	background.lerp(cam, 0, 4000, 4100);
+	background2.lerp(cam, 20, 4000, 4500);
 	/*background.parallax(cam, 0.999);
 	background2.parallax(cam, 0.99);
 	background3.parallax(cam, 0.95);*/
-	background2.lerp(cam, 20, 4000, 4500);
+	
 	
 	background.make();
 	background2.make();
 	//background3.make();
 	for(let i in bullets)bullets[i].drawArrow();
-	//o.preview();
 	o.draw();
 	rail.draw();
+	square(mouse.rx, mouse.ry, 10,10,"yellow");
 	c.restore();
 	
 	requestAnimationFrame(loop);
@@ -370,6 +408,15 @@ requestAnimationFrame(loop);
 
 
 </script>
+
+<h2>How to play</h2>
+<pre>
+A/D [HOLD] rotate cannon
+W   [HOLD] to fire
+S   [HOLD] to update aim prediction accordingly
+I/K [HOLD] to in/decrease power
+M   [PRESS] to change camera focus.
+</pre>
 </body>
 
 
