@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+<canvas id="canvas" height="512" width="1024"></canvas>
+<script>
+
+const canvas = document.getElementById("canvas");
+const c      = canvas.getContext("2d");
+const W      = canvas.width;
+const H      = canvas.height;
+
+
+function circle(x, y, r, col){
+	c.fillStyle = col
+	c.beginPath();
+    c.arc(x, y, r, 0, Math.PI * 2, true)
+	c.fill();
+}
+
+
+function square(x, y, w, h, col){
+	c.fillStyle = col;
+	c.fillRect(x, y, w, h);
+}
+
+function clear(){
+	square(0, 0, W, H, "black");
+}
+
+function line(x1,y1, x2,y2){
+	c.beginPath();
+	c.strokeStyle = "rgba(255,255,255,0.6)";
+	c.moveTo(x1,y1);
+	c.lineTo(x2,y2);
+	c.stroke();
+}
+
+function create2DArray(rows) {
+  var arr = [];
+
+  for (var i=0;i<rows;i++) {
+     arr[i] = [];
+  }
+
+  return arr;
+}
+
+Cell = function(x, y, s){
+	this.x = x;
+	this.y = y;
+	this.s = s;
+}
+
+Cell.prototype.update = function(){
+	this.x += Math.random()*1 - 0.5;
+	this.y += Math.random()*1 - 0.5;
+}
+
+Cell.prototype.draw = function(){
+	circle(this.x, this.y, this.s, "cyan");
+}
+
+
+
+Grid = function(x, y, sep, nodesize, amount){
+	this.x = x;
+	this.y = y;
+	this.sep = sep;
+	this.nodesize = nodesize;
+	this.amount = amount;
+	this.grid = create2DArray(this.amount);
+	
+	this.create = function(){
+		for(let i = 0; i < this.amount; i++){
+			for(let j = 0; j < this.amount; j++){
+				this.grid[i][j] = new Cell(i* this.sep + this.x, j* this.sep + this.y, this.nodesize);
+			}
+		}
+	}
+	
+	this.update = function(){
+		for(let i = 0; i < this.amount; i++)
+			for(let j = 0; j < this.amount; j++){
+				this.grid[i][j].update();
+			}
+	}
+	
+	this.draw = function(){
+		for(let i = 0; i < this.amount; i++)
+			for(let j = 0; j < this.amount; j++){
+				this.grid[i][j].draw();
+				
+			}
+		this.drawLines();
+	}
+	
+	this.drawLines = function(){
+		var xx1, yy1, xx2, yy2;
+		for(let i = 0; i < this.amount; i++)
+			for(let j = 0; j < this.amount; j++){
+				if(j < this.amount-1){
+					xx1 = this.grid[i][j].x;
+					yy1 = this.grid[i][j].y;
+					xx2 = this.grid[i][j+1].x
+					yy2 = this.grid[i][j+1].y;
+					line(xx1, yy1, xx2, yy2);
+				}
+				
+				if(i < this.amount-1){
+					xx1 = this.grid[i][j].x;
+					yy1 = this.grid[i][j].y;
+					xx2 = this.grid[i+1][j].x
+					yy2 = this.grid[i+1][j].y;
+					line(xx1, yy1, xx2, yy2);
+				}
+				
+			}
+	}
+	
+	this.create();
+}
+
+var g = new Grid(10, 10, 30, 2, 20);
+
+function loop(){
+	clear();
+	g.update();
+	g.draw();
+	requestAnimationFrame(loop);
+}
+
+requestAnimationFrame(loop);
+
+</script> 
+
+</html>
