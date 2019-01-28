@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+<canvas id="canvas" width="1024" height="512"></canvas>
+<script>
+
+const canvas = document.getElementById("canvas");
+const W = canvas.width;
+const H = canvas.height;
+const c = canvas.getContext("2d");
+
+document.addEventListener("mousemove", mouseHandler);
+document.addEventListener("mousedown", click);
+document.addEventListener("mouseup", click);
+
+var mouse = {
+    x:0,
+    y:0,
+    down:false
+};
+
+function mouseHandler(evt){
+		var rect = canvas.getBoundingClientRect();
+		var root = document.documentElement;
+		mouse.x = evt.clientX - rect.left - root.scrollLeft;
+		mouse.y = evt.clientY - rect.top - root.scrollTop;		
+}
+
+
+function click(evt){
+    mouse.down = (evt.type == "mousedown")? true:false;
+}
+
+
+function rad(d){
+    return d * (Math.PI/180);
+}
+
+function mag(x, y){
+    return Math.sqrt(x*x + y*y);
+}
+
+function square(x, y, w, h, col){
+    c.fillStyle = col;
+    c.fillRect(x, y, w, h);
+}
+
+
+function clear(){
+    square(0, 0, W, H, "rgba(200,200,200,0.6)");
+}
+
+function homeAll(all){
+    for(let i in all)
+        all[i].home();
+}
+
+
+Cutie = function(x, y, vx, vy){
+    this.x = x;
+    this.y = y;
+    this.s = Math.random() * 4 + 1;
+    this.vx = vx;
+    this.vy = vy;
+    this.rot = 0;
+    this.lim = Math.random()*2 + 2;
+    this.life = Math.random()*100 + 100;
+    this.dead = false;
+    this.readyToSplit = false;
+
+    this.update = function(){
+        this.x += this.vx;
+        this.y += this.vy;
+        this.vy += G;
+        this.rot = Math.atan2(this.vy, this.vx);
+        this.life -= 1;
+        var magv = mag(this.vx, this.vy);
+        if(magv > this.lim){
+            this.vx = this.vx * this.lim / magv;
+            this.vy = this.vy * this.lim / magv;  
+        }
+        if(this.life <= 0)this.readyToSplit = true;
+        if(this.y > H)this.dead = true;
+    }
+
+    this.draw = function(){
+        c.save();
+        c.translate(this.x, this.y);
+        c.rotate(this.rot);
+        square(-this.s/2, -this.s/2, this.s, this.s, "black");
+        c.beginPath();
+        c.moveTo(this.s/2,-this.s/2);
+        c.lineTo(this.s/2, this.s/2);
+        c.lineTo(this.s/2+10, 0);
+        c.fill();
+        c.restore();
+    }
+
+    this.home = function(){
+        var dx = mouse.x - this.x;
+        var dy = mouse.y - this.y;
+        var magv = mag(dx, dy);  
+        dx /= magv;
+        dy /= magv;
+
+        this.vx += dx * 0.08;
+        this.vy += dy * 0.08;
+    }
+}
+
+
+var cuties = [new Cutie(200, 200, 3, 3)];
+
+function loop(){
+    clear();
+    if(mouse.down)homeAll(cuties);
+    for(let i in cuties)
+        cuties[i].update();
+
+    for(let i in cuties)
+    cuties[i].draw();
+
+    for(let i = cuties.length-1; i >= 0; i--){
+        if(cuties[i].readyToSplit && cuties.length < MAXBITCHES){
+            cuties.push(new Cutie(cuties[i].x, 
+                                        cuties[i].y,
+                                        cuties[i].vx + Math.sin(rad(cuties[i].rot) + rad(45))*2,
+                                        cuties[i].vy + Math.cos(rad(cuties[i].rot) + rad(45))*2
+                        )
+            );
+
+            cuties.push(new Cutie(cuties[i].x, 
+                                        cuties[i].y,
+                                        cuties[i].vx + Math.sin(rad(cuties[i].rot) - rad(45))*2,
+                                        cuties[i].vy + Math.cos(rad(cuties[i].rot) - rad(45))*2
+                        )
+            );
+                
+            cuties.splice(i, 1);
+        }
+
+        if(cuties[i].dead) cuties.splice(i,1);
+    }
+
+    requestAnimationFrame(loop);
+}
+
+// global CONSTS
+const G = 0.01;
+const MAXBITCHES = 200;
+
+requestAnimationFrame(loop);
+
+</script>
+</html>
