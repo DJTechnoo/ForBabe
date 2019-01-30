@@ -35,8 +35,15 @@ function rad(d){
     return d * (Math.PI/180);
 }
 
+function deg(r){
+    return r * (180/Math.PI);
+}
+
 function mag(x, y){
-    return Math.sqrt(x*x + y*y);
+    //return Math.sqrt(x*x + y*y);
+    var r = Math.sqrt(x*x + y*y);
+    if(r > 0) return r;
+    return 1;
 }
 
 function square(x, y, w, h, col){
@@ -58,61 +65,99 @@ function homeAll(all){
 Cutie = function(x, y, vx, vy){
     this.x = x;
     this.y = y;
-    this.s = Math.random() * 4 + 1;
+    this.s = Math.random() * 2 + 1;
     this.vx = vx;
     this.vy = vy;
     this.rot = 0;
-    this.lim = Math.random()*2 + 2;
-    this.life = Math.random()*100 + 100;
+    this.lim = Math.random()*0.5 + 1.5;
+    this.life = Math.random()*50 + 60;
     this.dead = false;
     this.readyToSplit = false;
-
-    this.update = function(){
-        this.x += this.vx;
-        this.y += this.vy;
-        this.vy += G;
-        this.rot = Math.atan2(this.vy, this.vx);
-        this.life -= 1;
-        var magv = mag(this.vx, this.vy);
-        if(magv > this.lim){
-            this.vx = this.vx * this.lim / magv;
-            this.vy = this.vy * this.lim / magv;  
-        }
-        if(this.life <= 0)this.readyToSplit = true;
-        if(this.y > H)this.dead = true;
-    }
-
-    this.draw = function(){
-        c.save();
-        c.translate(this.x, this.y);
-        c.rotate(this.rot);
-        square(-this.s/2, -this.s/2, this.s, this.s, "black");
-        c.beginPath();
-        c.moveTo(this.s/2,-this.s/2);
-        c.lineTo(this.s/2, this.s/2);
-        c.lineTo(this.s/2+10, 0);
-        c.fill();
-        c.restore();
-    }
-
-    this.home = function(){
-        var dx = mouse.x - this.x;
-        var dy = mouse.y - this.y;
-        var magv = mag(dx, dy);  
-        dx /= magv;
-        dy /= magv;
-
-        this.vx += dx * 0.08;
-        this.vy += dy * 0.08;
-    }
 }
 
 
-var cuties = [new Cutie(200, 200, 3, 3)];
+Cutie.prototype.update = function(){
+    this.rot = Math.atan2(this.vy, this.vx);
+    this.life -= 1;
+    var magv = mag(this.vx, this.vy);
+    if(magv > this.lim){
+        this.vx = this.vx * this.lim / magv;
+        this.vy = this.vy * this.lim / magv;  
+    }
+
+    this.vx *= DRAG;
+    this.vy *= DRAG;
+    this.x += this.vx;
+    this.y += this.vy;
+   // this.vy += G;
+
+    if(this.life <= 0)this.readyToSplit = true;
+    if(this.y > H)this.dead = true;
+}
+
+Cutie.prototype.draw = function(){
+    c.save();
+    c.translate(this.x, this.y);
+    c.rotate(this.rot);
+    square(-this.s/2, -this.s/2, this.s, this.s, "black");
+    c.beginPath();
+    c.moveTo(this.s/2,-this.s/2);
+    c.lineTo(this.s/2, this.s/2);
+    c.lineTo(this.s/2+5, 0);
+    c.fill();
+    c.restore();
+}
+
+Cutie.prototype.home = function(){
+    var dx = mouse.x - this.x;
+    var dy = mouse.y - this.y;
+    var magv = mag(dx, dy);  
+    dx /= magv;
+    dy /= magv;
+
+    this.vx += dx * 0.04;
+    this.vy += dy * 0.04;
+}
+
+
+Cutie.prototype.rule2 = function(i){
+    var cx = 0;
+    var cy = 0;
+    var nx = 0;
+    var ny = 0;
+    var mg = 0;
+
+    for(var j in cuties){
+        
+        if(i != j){
+            nx = cuties[j].x - cuties[i].x;
+            ny = cuties[j].y - cuties[i].y;
+            mg = mag(nx, ny);
+            if(mg < AVOIDRANGE){
+                cx -= nx;
+                cy -= ny; 
+            }
+        }
+    }
+
+    var magv = mag(cx, cy); 
+    var mgv = mag(this.vx, this.vy); 
+
+    cx /= magv;
+    cy /= magv;
+
+    this.vx += cx * mgv * AVOIDSTRENGTH;
+    this.vy += cy * mgv * AVOIDSTRENGTH;
+}
+
+
+var cuties = [new Cutie(200, 200,3, 3)];
+
 
 function loop(){
     clear();
     if(mouse.down)homeAll(cuties);
+    for(let i in cuties) cuties[i].rule2(i);
     for(let i in cuties)
         cuties[i].update();
 
@@ -123,18 +168,18 @@ function loop(){
         if(cuties[i].readyToSplit && cuties.length < MAXBITCHES){
             cuties.push(new Cutie(cuties[i].x, 
                                         cuties[i].y,
-                                        cuties[i].vx + Math.sin(rad(cuties[i].rot) + rad(45))*2,
-                                        cuties[i].vy + Math.cos(rad(cuties[i].rot) + rad(45))*2
+                                        Math.cos(cuties[i].rot + rad(SEPARATIONANGLE))*1,
+                                        Math.sin(cuties[i].rot + rad(SEPARATIONANGLE))*1
                         )
             );
 
             cuties.push(new Cutie(cuties[i].x, 
                                         cuties[i].y,
-                                        cuties[i].vx + Math.sin(rad(cuties[i].rot) - rad(45))*2,
-                                        cuties[i].vy + Math.cos(rad(cuties[i].rot) - rad(45))*2
+                                        Math.cos(cuties[i].rot - rad(SEPARATIONANGLE))*1,
+                                        Math.sin(cuties[i].rot - rad(SEPARATIONANGLE))*1
                         )
             );
-                
+            console.log(deg(cuties[i].rot));
             cuties.splice(i, 1);
         }
 
@@ -146,7 +191,11 @@ function loop(){
 
 // global CONSTS
 const G = 0.01;
-const MAXBITCHES = 200;
+const MAXBITCHES = 300;
+const AVOIDRANGE = 10;
+const AVOIDSTRENGTH = 0.06;
+const DRAG = 1;// 0.998;
+const SEPARATIONANGLE = 10;
 
 requestAnimationFrame(loop);
 
