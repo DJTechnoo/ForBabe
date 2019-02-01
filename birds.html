@@ -53,7 +53,7 @@ function square(x, y, w, h, col){
 
 
 function clear(){
-    square(0, 0, W, H, "rgba(200,200,200,0.6)");
+    square(0, 0, W, H, "rgba(190,190,190,0.6)");
 }
 
 function homeAll(all){
@@ -99,7 +99,7 @@ Cutie.prototype.draw = function(){
     c.save();
     c.translate(this.x, this.y);
     c.rotate(this.rot);
-    square(-this.s/2, -this.s/2, this.s, this.s, "black");
+    square(-this.s/2, -this.s/2, this.s, this.s, "rgba(200, 0, 0, 0.4)");
     c.beginPath();
     c.moveTo(this.s/2,-this.s/2);
     c.lineTo(this.s/2, this.s/2);
@@ -136,6 +136,11 @@ Cutie.prototype.rule2 = function(i){
             if(mg < AVOIDRANGE){
                 cx -= nx;
                 cy -= ny; 
+            }
+
+            else if(mg > AVOIDRANGE+300){
+                cx += nx;
+                cy += ny; 
             }
         }
     }
@@ -179,7 +184,7 @@ function loop(){
                                         Math.sin(cuties[i].rot - rad(SEPARATIONANGLE))*1
                         )
             );
-            console.log(deg(cuties[i].rot));
+           
             cuties.splice(i, 1);
         }
 
@@ -194,7 +199,7 @@ const G = 0.01;
 const MAXBITCHES = 300;
 const AVOIDRANGE = 10;
 const AVOIDSTRENGTH = 0.06;
-const DRAG = 1;// 0.998;
+const DRAG = 0.998;
 const SEPARATIONANGLE = 10;
 
 requestAnimationFrame(loop);
