@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Sorted Centipede</title>
+	<link href="styles/main.css" rel="stylesheet" type="text/css"/>
+</head>
+<body>
+<canvas id="canvas" height="512" width="1024"></canvas>
+<script>
+
+
+
+
+vec = function(x, y){
+    this.x = x;
+    this.y = y;
+}
+
+vec.prototype.add = function(v){
+    return new vec(this.x + v.x, this.y + v.y);
+}
+
+
+vec.prototype.sub = function(v){
+    return new vec(this.x - v.x, this.y - v.y);
+}
+
+
+vec.prototype.scale = function(s){
+    this.x *= s; this.y *= s;
+}
+
+
+vec.prototype.length = function(){
+    return Math.sqrt(this.x * this.x + this.y * this.y);
+}
+
+
+vec.prototype.normalize = function(){
+    let len = this.length();
+    if(len > 0) {this.x /= len; this.y /= len;}
+    else {this.x = 0; this.y = 0;}
+}
+
+
+vec.prototype.limit = function(lim){
+    let len = this.length();
+    if(len > lim){
+        this.normalize();
+        this.scale(lim);
+    }
+}
+
+
+function dist(v1, v2){
+    var v3 = v1.sub(v2);
+    return v3.length();
+}
+
+function linearInterPolation(x1, x2, t){
+	return x1 + t*(x2-x1);
+}
+
+
+const canvas = document.getElementById("canvas");
+const c = canvas.getContext("2d");
+const W = canvas.width;
+const H = canvas.height;
+
+const LERP = 0.04;
+const LERP2 = 0.12;
+const LEGANGLE = 100;
+const LEGLEN = 3;
+const G = 0.01;
+const MAXTIMER = 100;
+const FIRESTRENGTH = 6;
+
+function square(x, y, w, h, col){
+    c.fillStyle = col;
+    c.fillRect(x, y, w, h);
+}
+
+function clear(){
+    square(0, 0, W, H, "rgba(0, 0, 0, 0.5)");
+}
+
+Follower = function(x, y){
+    this.s = Math.random() * 5 + 1;
+    this.pos = new vec(x, y);
+    this.vel = new vec(0, 0);
+    this.acc = new vec(0, 0);
+    this.rot = 0;
+    this.particleCounter = MAXTIMER;
+    this.particleTime = Math.floor(Math.random()* MAXTIMER);
+    this.particleTime2 = Math.floor(Math.random()* MAXTIMER);
+
+    this.satPos = new vec(Math.cos(this.rot + 90)*this.s*2 + this.pos.x, 
+                            Math.sin(this.rot + 90)*this.s*2 + this.pos.y);
+    this.currentSatPos = new vec(Math.cos(this.rot + 90)*this.s*2 + this.pos.x, 
+                            Math.sin(this.rot + 90)*this.s*2 + this.pos.y);
+    
+    this.satPos2 = new vec(Math.cos(this.rot - 90)*this.s*2 + this.pos.x, 
+                            Math.sin(this.rot - 90)*this.s*2 + this.pos.y);
+    this.currentSatPos2 = new vec(Math.cos(this.rot - 90)*this.s*2 + this.pos.x, 
+                            Math.sin(this.rot - 90)*this.s*2 + this.pos.y);
+
+}
+
+Follower.prototype.draw = function(){
+    // body
+    c.save();
+    c.translate(this.pos.x, this.pos.y);
+    c.rotate(this.rot);
+    square(-this.s/2, -this.s/2, this.s, this.s, "white");
+    c.beginPath();
+    c.moveTo(this.s/2,-this.s/2);
+    c.lineTo(this.s/2, this.s/2);
+    c.lineTo(this.s/2+5, 0);
+    c.fill();
+    c.restore();
+    
+    // Legs
+    square(this.currentSatPos.x, this.currentSatPos.y, 2, 2, "pink");
+    square(this.currentSatPos2.x, this.currentSatPos2.y, 2, 2, "pink");
+    
+    c.beginPath();
+    c.moveTo(this.pos.x, this.pos.y);
+    c.lineTo(this.currentSatPos.x, this.currentSatPos.y);
+    c.strokeStyle = "white";
+    c.stroke();
+
+    c.beginPath();
+    c.moveTo(this.pos.x, this.pos.y);
+    c.lineTo(this.currentSatPos2.x, this.currentSatPos2.y);
+    c.strokeStyle = "white";
+    c.stroke();
+}
+
+Follower.prototype.update = function(){
+    this.vel.limit(1.2);
+    this.pos = this.pos.add(this.vel);
+    // this.vel.scale(0.97);
+    // this.acc.scale(0.99);
+    //this.acc.y += 0.1;
+    this.vel = this.vel.add(this.acc);
+    this.rot = Math.atan2(this.vel.y, this.vel.x);
+    this.satPos.x = Math.cos(this.rot + LEGANGLE)*this.s*LEGLEN + this.pos.x;
+    this.satPos.y = Math.sin(this.rot + LEGANGLE)*this.s*LEGLEN + this.pos.y;
+
+    this.satPos2.x = Math.cos(this.rot - LEGANGLE)*this.s*LEGLEN + this.pos.x;
+    this.satPos2.y = Math.sin(this.rot - LEGANGLE)*this.s*LEGLEN + this.pos.y;
+
+    this.currentSatPos.x = linearInterPolation(this.currentSatPos.x, this.satPos.x, LERP);
+    this.currentSatPos.y = linearInterPolation(this.currentSatPos.y, this.satPos.y, LERP);
+
+    this.currentSatPos2.x = linearInterPolation(this.currentSatPos2.x, this.satPos2.x, LERP);
+    this.currentSatPos2.y = linearInterPolation(this.currentSatPos2.y, this.satPos2.y, LERP);
+
+    // PARTICLES
+    if(this.particleCounter == this.particleTime){
+        var v = this.currentSatPos.sub(this.pos);
+        v.normalize();
+        particles.push(new Particle(this.currentSatPos.x, this.currentSatPos.y, v));
+    }
+
+    if(this.particleCounter == this.particleTime2){
+        var v = this.currentSatPos2.sub(this.pos);
+        v.normalize();
+        particles.push(new Particle(this.currentSatPos2.x, this.currentSatPos2.y, v));
+    }
+    this.particleCounter--;
+    if(this.particleCounter < 0) this.particleCounter = MAXTIMER;
+}
+
+Follower.prototype.follow = function(other){
+    this.acc = other.pos.sub(this.pos);
+    this.acc.scale(5);
+    this.acc.limit(0.5);
+    if(dist(this.pos, other.pos) < 7) {
+        this.acc.scale(0.0);
+        this.vel.scale(0.5); 
+    }
+}
+
+Follower.prototype.projectile = function(){
+    this.pos = this.pos.add(this.vel);
+    this.vel.y += G;
+
+    this.rot = Math.atan2(this.vel.y, this.vel.x);
+    this.satPos.x = Math.cos(this.rot + LEGANGLE)*this.s*LEGLEN + this.pos.x;
+    this.satPos.y = Math.sin(this.rot + LEGANGLE)*this.s*LEGLEN + this.pos.y;
+
+    this.satPos2.x = Math.cos(this.rot - LEGANGLE)*this.s*LEGLEN + this.pos.x;
+    this.satPos2.y = Math.sin(this.rot - LEGANGLE)*this.s*LEGLEN + this.pos.y;
+
+    this.currentSatPos.x = linearInterPolation(this.currentSatPos.x, this.satPos.x, LERP2);
+    this.currentSatPos.y = linearInterPolation(this.currentSatPos.y, this.satPos.y, LERP2);
+
+    this.currentSatPos2.x = linearInterPolation(this.currentSatPos2.x, this.satPos2.x, LERP2);
+    this.currentSatPos2.y = linearInterPolation(this.currentSatPos2.y, this.satPos2.y, LERP2);
+}
+
+function shoot(){
+    if(followers.length){
+        var pr = followers[0];
+        pr.vel.x = Math.cos(pr.rot) * FIRESTRENGTH;
+        pr.vel.y = Math.sin(pr.rot) * FIRESTRENGTH;
+        projectiles.push(pr);
+        followers.splice(0, 1);
+    }
+}
+
+Particle = function(x, y, v){
+    this.pos = new vec(x, y);
+    this.vel = v
+    this.s = Math.random()*1+0.2;
+    this.life = 60;
+}
+
+Particle.prototype.update = function(){
+    this.pos = this.pos.add(this.vel);
+    this.vel.y += G;
+    this.vel.limit(1.2);
+    this.life--;
+}
+
+Particle.prototype.draw = function(){
+    square(this.pos.x, this.pos.y, this.s, this.s, "white");
+}
+
+var followers = [];
+var projectiles = [];
+var particles = [];
+var shouldFollow = true;
+
+this.randomize = function(){
+		var randomIndex = 0;
+		var temp;
+		for(var i in followers){
+			randomIndex = Math.floor(Math.random()* followers.length);
+			while(randomIndex == i)randomIndex = Math.floor(Math.random()* followers.length);
+			temp = followers[randomIndex];
+			followers[randomIndex] = followers[i];
+			followers[i] = temp;
+		}
+	}
+
+function setup(){
+    for(let i = 0; i < 20; i++){
+        addFollower();
+    }
+
+    followers.sort(compare);
+
+    mouse.pos = new vec(0, 0);
+    document.addEventListener("mousemove", mouseHandler);
+    document.addEventListener("click", click);
+    document.addEventListener("keyup", keyboard);
+}
+
+function mouseHandler(evt){
+    var rect = canvas.getBoundingClientRect();
+    var root = document.documentElement;
+    mouse.pos.x = evt.clientX - rect.left - root.scrollLeft;
+    mouse.pos.y = evt.clientY - rect.top - root.scrollTop;		
+}
+
+function keyboard(evt){
+
+    if(evt.key == 'a'){
+        shouldFollow = !shouldFollow;
+        for(let i = 0; i < followers.length; i++){
+            followers[i].acc.scale(0);
+        }
+    }
+
+    if(evt.key == 's') shoot();
+    if(evt.key == 'r') randomize();
+}
+
+function click(){
+    addFollower();
+    followers.sort(compare);
+}
+
+function compare(a, b){
+    return b.s - a.s;   
+}
+
+function addFollower(){
+    let x = Math.random() * W;
+    let y = Math.random() * H;
+    followers.push(new Follower(x, y));
+}
+
+function follow(){
+    followers[0].follow(mouse);
+    for(let i = followers.length-1; i >= 1; i--){    
+        followers[i].follow(followers[i-1]);
+    }
+}
+
+function fallDown(){
+    for(let i = 0; i < followers.length; i++){
+        followers[i].vel.y += G;
+        if(followers[i].pos.y >= H){
+            followers[i].pos.y = H;
+           
+            if(followers[i].vel.length() < 0.4) followers[i].vel.scale(0);
+            else{ 
+                followers[i].vel.y *= -0.4;
+                followers[i].vel.x *= 0.4;
+            }
+        }
+    }
+}
+
+
+
+var mouse = {
+    pos: new vec(0, 0)
+};
+
+
+function loop(){
+    clear();
+    if(followers.length){
+        if(shouldFollow)follow();
+        else fallDown();
+
+        for(let i in followers){
+            followers[i].update();
+            followers[i].draw();
+        }
+    }
+
+    for(let i in projectiles){
+        projectiles[i].projectile();
+        projectiles[i].draw();
+    }
+
+    for(let i in particles){
+        particles[i].update();
+        particles[i].draw();
+    }
+
+    for(let i = particles.length -1; i >= 0; i--){
+        if(particles[i].life < 0) particles.splice(i, 1);
+    }
+    requestAnimationFrame(loop);
+}
+
+setup();
+requestAnimationFrame(loop);
+
+
+</script>
+<br>
+<a href="index.html">Back</a>
+<h2>How to play</h2>
+<pre>
+[S]  Shoot current head
+[R]  Randomize Centipede
+[A]  Collapse / Rebuild
+[CLICK] Add new body part
+[MOUSE] Centipede follow
+</pre>
+</body>
+</html>

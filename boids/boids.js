@@ -6,6 +6,7 @@ const c = canvas.getContext("2d");
 const W = canvas.width;
 const H = canvas.height;
 
+
 function square(x, y, w, h, col){
     c.fillStyle = col;
     c.fillRect(x, y, w, h);
@@ -26,7 +27,7 @@ Boid = function(){
 
 
 Boid.prototype.update = function(){
-    this.acc.limit(0.05);
+    this.acc.limit(0.025);
     this.vel = this.vel.add(this.acc);
     this.vel.limit(1);
     this.rot = Math.atan2(this.vel.y, this.vel.x);
@@ -173,19 +174,74 @@ Engine = function(n){
         this.boids[i].acc = this.boids[i].acc.add(desired1);
         this.boids[i].acc = this.boids[i].acc.add(desired2);
         this.boids[i].acc = this.boids[i].acc.add(desired3);
+
+        
+    }
+
+    this.updateAndDraw = function(){
+        for(let i in this.boids){
+            this.boids[i].update();
+            this.boids[i].draw();
+        }
+    }
+
+    this. addBoid = function(){
+        var rx = Math.random()*4-2;
+        var ry = Math.random()*4-2;
+        for(let i = 0; i < 20; i++){
+            var b = new Boid();
+            b.pos = new vec(mouse.x + Math.random()*50 - 25, mouse.y + Math.random()*50 - 25);
+            b.vel = new vec(rx + Math.random()*0.2, ry + Math.random()*0.2);
+            b.vel.scale(Math.random() * 0.5 + 0.01);
+            b.acc = new vec(0, 0);
+            this.boids.push(b);
+        }
     }
 }
 
+function pic(src, x, y, w2, h2){
+	this.sprite = new Image();
+	this.sprite.src = src;
+    this.x = x;
+    this.y = y;
+    this.w2 = w2;
+    this.h2 = h2;
+	
 
-var engine = new Engine(300);
+	this.draw = function(){
+		c.drawImage(this.sprite, x, y, this.w2, this.h2);
+	}
+}
+
+function mouseHandler(evt){
+    var rect = canvas.getBoundingClientRect();
+    var root = document.documentElement;
+    mouse.x = evt.clientX - rect.left - root.scrollLeft;
+    mouse.y = evt.clientY - rect.top - root.scrollTop;		
+}
+
+function click(){
+    engine.addBoid();
+}
+
+var mouse = {
+    x:0, y:0
+};
+
+var engine = new Engine(5);
+var background = new pic("img2.png", 0, 0, W, H);
 
 function loop(){
-    clear();
+    //clear();
+    background.draw();
     engine.allRules();
-    engine.update();
-    engine.draw();
+    engine.updateAndDraw();
+   
     requestAnimationFrame(loop);
 }
+
+document.addEventListener("mousemove", mouseHandler);
+document.addEventListener("click", click);
 
 requestAnimationFrame(loop);
 
