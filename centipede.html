@@ -174,7 +174,7 @@ Follower.prototype.update = function(){
 
 Follower.prototype.follow = function(other){
     this.acc = other.pos.sub(this.pos);
-    this.acc.scale(5);
+    //this.acc.scale(0.01);
     this.acc.limit(0.5);
     if(dist(this.pos, other.pos) < 7) {
         this.acc.scale(0.0);

@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+
+<canvas id="canvas" width="1024" height="512"></canvas>
+
+<body>
+
+<script>
+document.addEventListener("click", click);
+const canvas = document.getElementById("canvas");
+const c = canvas.getContext("2d");
+
+var soundOn = false;
+var ready = false;
+
+function sound(src, vol) {
+    this.sound = document.createElement("audio");
+    this.sound.src = src;
+    this.sound.setAttribute("preload", "auto");
+    this.sound.setAttribute("controls", "none");
+    this.sound.style.display = "none";
+	this.sound.volume = vol;
+	this.sound.crossOrigin="anonymous"
+	document.body.appendChild(this.sound);
+	this.c;
+	this.analyser;
+	this.source;
+	this.bars;
+	
+	// Audio Context stuff
+	this.createAnalyser = function(){
+		this.c = new AudioContext();
+		this.analyser = this.c.createAnalyser(); // AnalyserNode method
+		
+		this.source = this.c.createMediaElementSource(this.sound); 
+		this.source.connect(this.analyser);
+		this.analyser.connect(this.c.destination);
+		ready = true;
+	}
+	
+	this.updateBars = function(){
+		this.bars = new Uint8Array(this.analyser.frequencyBinCount);
+		this.analyser.getByteFrequencyData(this.bars);
+		
+	}
+	
+    this.play = function(){
+		if(soundOn){
+		//	this.createAnalyser();
+			this.sound.currentTime = 0.2;
+			this.sound.play();
+		} else this.sound.pause();
+    }
+    this.stop = function(){
+        this.sound.pause();
+    }    
+}
+
+function click(){
+	soundOn = !soundOn;
+	backgroundMusic.createAnalyser();
+	backgroundMusic.play();
+}
+
+O = function(){
+	this.x = 500;
+	this.y = 240;
+	this.s = 40;
+	
+	this.update = function(bar){
+		this.s = bar;
+		c.fillStyle = "blue";
+		c.fillRect(this.x-this.s/2, this.y-this.s/2, this.s, this.s);
+	}
+}
+
+
+var backgroundMusic = new sound("Assets/alternativelaputatrap.mp3", 0.2);
+backgroundMusic.play();
+
+var o = new O();
+var bar = 0;
+
+function loop(){
+
+	c.fillStyle = "black";
+	c.fillRect(0, 0, 1024, 512);
+	if(ready){
+		backgroundMusic.updateBars();
+		
+		o.update(backgroundMusic.bars[0]);
+	}
+	requestAnimationFrame(loop);
+}
+
+requestAnimationFrame(loop);
+
+
+
+</script>
+</body>
+</html>
