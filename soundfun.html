@@ -16,11 +16,13 @@ var ready = false;
 function sound(src, vol) {
     this.sound = document.createElement("audio");
     this.sound.src = src;
+	this.sound.loop = true;
     this.sound.setAttribute("preload", "auto");
     this.sound.setAttribute("controls", "none");
     this.sound.style.display = "none";
 	this.sound.volume = vol;
 	this.sound.crossOrigin="anonymous"
+	this.isPlaying = false;
 	document.body.appendChild(this.sound);
 	this.c;
 	this.analyser;
@@ -47,30 +49,47 @@ function sound(src, vol) {
     this.play = function(){
 		if(soundOn){
 		//	this.createAnalyser();
-			this.sound.currentTime = 0.2;
+			this.sound.currentTime = 0;
 			this.sound.play();
+			this.isPlaying = true;
 		} else this.sound.pause();
     }
     this.stop = function(){
         this.sound.pause();
-    }    
+		this.isPlaying = false;
+    } 
+
+	this.togglePlay = function(){
+		this.isPlaying = !this.isPlaying;
+		if(this.isPlaying)this.sound.play();
+		else this.sound.pause();
+	}   
 }
 
 function click(){
-	soundOn = !soundOn;
-	backgroundMusic.createAnalyser();
-	backgroundMusic.play();
+	if(!soundOn){
+		soundOn = true;
+		backgroundMusic.createAnalyser();
+		backgroundMusic.play();
+	}else backgroundMusic.togglePlay();
 }
 
-O = function(){
-	this.x = 500;
-	this.y = 240;
+O = function(x, y, t, lim, col){
+	this.x = x;
+	this.y = y;
 	this.s = 40;
+	this.thresh = t;
+	this.lim = lim;
+	this.col = col;
 	
 	this.update = function(bar){
-		this.s = map(bar, 40, 255, 50, 255);
-		c.fillStyle = "blue";
+		this.s = map(bar, this.thresh, 300, this.lim, 255);
+		c.fillStyle = this.col;
 		c.fillRect(this.x-this.s/2, this.y-this.s/2, this.s, this.s);
+		c.fillStyle = "black";
+		c.fillRect(this.x + this.s/4 - this.s/2, this.y + this.s/4 -this.s/2, this.s/8, this.s/2);
+		c.fillRect(this.x + 2.5*this.s/4 - this.s/2, this.y + this.s/4 -this.s/2, this.s/8, this.s/2);
+		c.fillRect(this.x - this.s/20, this.y+this.s/2.1, this.s/10, -this.s/10);
 	}
 }
 
@@ -95,7 +114,9 @@ function map(inp, ra, rb, r2a, r2b){
     return result;
 }
 
-var o = new O();
+var o = new O(500, 200, 40, 50, "pink");
+var a = new O(200, 200, 40, 10, "lightgreen");
+var b = new O(700, 200, 10, 50, "cyan");
 var bar = 0;
 
 function loop(){
@@ -106,6 +127,8 @@ function loop(){
 		backgroundMusic.updateBars();
 		
 		o.update(backgroundMusic.bars[3]);
+		a.update(backgroundMusic.bars[500]);
+		b.update(backgroundMusic.bars[100]);
 		/*for(let i = 0; i < backgroundMusic.bars.length; i++){
 			c.fillStyle = "cyan";
 			c.fillRect(i, 512, 1, -backgroundMusic.bars[i] );
