@@ -68,15 +68,32 @@ O = function(){
 	this.s = 40;
 	
 	this.update = function(bar){
-		this.s = bar;
+		this.s = bar; //map(bar, 40, 70, 30, 400);
 		c.fillStyle = "blue";
 		c.fillRect(this.x-this.s/2, this.y-this.s/2, this.s, this.s);
 	}
 }
 
 
-var backgroundMusic = new sound("Assets/alternativelaputatrap.mp3", 0.2);
+var backgroundMusic = new sound(
+	"Assets/alternativelaputatrap.mp3"
+	,
+	 1
+);
 backgroundMusic.play();
+
+function map(inp, ra, rb, r2a, r2b){
+	if(inp <= ra) return r2a;
+	if(inp >= rb) return r2b;
+
+	var k = rb - ra;
+	var k2 = r2b - r2a;
+	var ratio = k2 / k;
+	var temp = inp - ra;
+
+    var result = temp * ratio + r2a;
+    return result;
+}
 
 var o = new O();
 var bar = 0;
@@ -88,7 +105,7 @@ function loop(){
 	if(ready){
 		backgroundMusic.updateBars();
 		
-		o.update(backgroundMusic.bars[0]);
+		o.update(backgroundMusic.bars[3]);
 	}
 	requestAnimationFrame(loop);
 }
