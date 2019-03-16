@@ -175,16 +175,19 @@ Train = function(x, y, w, h, s, l){
     }
 }
 
-Trail = function(p){
-    this.pos = new vec(p.x, p.y);
+Trail = function(x, y){
+    this.pos = new vec(x, y);
     this.maxLife = 40;
     this.life = this.maxLife;
     this.alpha = 1;
+    this.s = 5;
     
     this.update = function(){
         this.life--;
         this.alpha = map(this.life, 0, this.maxLife, 0, 1);
-        square1(this.pos, 5, "rgba(255, 255, 255," + this.alpha + ")");
+        this.s = map(this.life, 0, this.maxLife, 50, 5);
+        square2(this.pos.x-this.s/2, this.pos.y-this.s/2, this.s, 
+                "rgba(255, 255, 255," + this.alpha + ")");
     }
 }
 
@@ -217,7 +220,7 @@ Player = function(){
 
         this.trailCounter--;
         if(this.trailCounter <= 0){
-            this.trail.push(new Trail(this.pos));
+            this.trail.push(new Trail(this.pos.x + this.s/2, this.pos.y + this.s/2));
             this.trailCounter = 10;
         }
         
