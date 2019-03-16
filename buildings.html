@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html>
+<canvas id="canvas" width="1024" height="512"></canvas>
+<embed name="GoodEnough" src="Assets/alternativelaputatrap2.mp3" loop="false" hidden="true" autostart="true">
+<script>
+
+//   VECTOR CLASS
+vec = function(x, y){
+    this.x = x;
+    this.y = y;
+}
+
+vec.prototype.add = function(v){
+    return new vec(this.x + v.x, this.y + v.y);
+}
+
+
+vec.prototype.sub = function(v){
+    return new vec(this.x - v.x, this.y - v.y);
+}
+
+
+vec.prototype.scale = function(s){
+    this.x *= s; this.y *= s;
+}
+
+
+vec.prototype.length = function(){
+    return Math.sqrt(this.x * this.x + this.y * this.y);
+}
+
+
+vec.prototype.normalize = function(){
+    let len = this.length();
+    if(len > 0) {this.x /= len; this.y /= len;}
+    else {this.x = 0; this.y = 0;}
+}
+
+
+vec.prototype.limit = function(lim){
+    let len = this.length();
+    if(len > lim){
+        this.normalize();
+        this.scale(lim);
+    }
+}
+
+
+function dist(v1, v2){
+    var v3 = v1.sub(v2);
+    return v3.length();
+}
+
+
+function square1(pos, s, col){
+    c.fillStyle = col;
+    c.fillRect(pos.x, pos.y, s, s);
+}
+
+function square2(x, y, s, col){
+    c.fillStyle = col;
+    c.fillRect(x, y, s, s);
+}
+
+function rect1(pos, w, h, col){
+    c.fillStyle = col;
+    c.fillRect(pos.x, pos.y, w, h);
+}
+
+function rect2(x, y, w, h, col){
+    c.fillStyle = col;
+    c.fillRect(x, y, w, h);
+}
+
+
+//   GAME  FUNCTIONS
+
+function clear(){
+    rect2(0, 0, W, H, 
+        "rgba(25, 6, 18, 1)" 
+        //"rgba(150, 60, 0, 1)"
+        );
+}
+
+function setup(){
+    document.addEventListener("mousemove", mouseHandler);
+    document.addEventListener("mousedown", click);
+    document.addEventListener("mouseup", click);
+    document.addEventListener("keydown", keyboard);
+    document.addEventListener("keyup", keyboard);
+
+    createBuildings(3, "rgba(4, 4, 4, 0.5)", 0.99, 60);
+    createBuildings(2, "rgba(4, 4, 4, 0.5)", 0.985, 40);
+    createBuildings(1.7, "rgba(4, 4, 4, 0.5)", 0.965, 20);
+    createBuildings(1, "rgba(7, 7, 7, 0.5)", 0.95, 10);
+    createBuildings(0.2, "rgba(10, 10, 10, 0.5)", 0, 0);
+    player = new Player();
+    cam = new Camera();
+    mountain = new Mountain(0.995);
+    mountain.create();
+    train = new Train(0, H-100, 60, 10, 10, 0.993);
+}
+
+function mouseHandler(evt){
+    var rect = canvas.getBoundingClientRect();
+    var root = document.documentElement;
+    mouse.pos.x = evt.clientX - rect.left - root.scrollLeft;
+    mouse.pos.y = evt.clientY - rect.top - root.scrollTop;		
+}
+
+function click(evt){
+    mouse.click = (evt.type == "mousedown")? true:false;
+}
+
+function keyboard(evt){
+    state = (evt.type == "keydown")? true:false;
+    switch(evt.key){
+        case 'w': key.w = state; break;
+        case 'a': key.a = state; break;
+        case 's': key.s = state; break;
+        case 'd': key.d = state; break;
+    }
+}
+
+function map(inp, ra, rb, r2a, r2b){
+	if(inp <= ra) return r2a;
+	if(inp >= rb) return r2b;
+
+	var k = rb - ra;
+	var k2 = r2b - r2a;
+	var ratio = k2 / k;
+	var temp = inp - ra;
+
+    var result = temp * ratio + r2a;
+    return result;
+}
+
+function lerp(x1, x2, s){
+	return x1 + s*(x2-x1);
+}
+
+Train = function(x, y, w, h, s, l){
+    this.x = x;
+    this.y = y;
+    this.pos = new vec(0,0);
+    this.w = w/s;
+    this.h = h/s;
+    this.gap = this.w/5;
+    this.cars = Math.random()*20+10;
+    this.spd = 0.6;
+    this.layer = l;
+    this.s = h;
+    this.ground = 00;
+
+    this.parallax = function(cm){
+		this.pos.x = this.x -cm.x*this.layer;
+        this.pos.y = this.y -cm.y*this.layer;
+	}
+
+    this.moveTrain = function(){
+        this.x += this.spd;
+        if(this.x > W) {this.x = -W/2;  this.cars = Math.random()*20+10;}
+        
+    }
+
+    this.draw = function(){
+        let tx = this.pos.x; let ty = this.pos.y;
+        rect2(tx, ty, this.w, this.h, "white");
+
+        for(let i = 0; i < this.cars; i++){
+           
+            tx += (this.w + this.gap);
+            rect2(tx, ty, this.w, this.h, "white");
+        }
+    }
+}
+
+Trail = function(p){
+    this.pos = new vec(p.x, p.y);
+    this.maxLife = 40;
+    this.life = this.maxLife;
+    this.alpha = 1;
+    
+    this.update = function(){
+        this.life--;
+        this.alpha = map(this.life, 0, this.maxLife, 0, 1);
+        square1(this.pos, 5, "rgba(255, 255, 255," + this.alpha + ")");
+    }
+}
+
+Player = function(){
+    this.pos = new vec(500, 100);
+    this.vel = new vec(0, 0);
+    this.s = 20;
+    this.spd = 0.5;
+    this.rot = 0;
+    this.ground = 0;
+    this.trail = [];
+    this.trailCounter = 5;
+
+    this.update = function(){
+        //this.pos.y += 0.01;
+        this.vel.scale(0.999);
+        this.pos = this.pos.add(this.vel);
+        if(key.a) this.vel.x -= this.spd;
+        if(key.d) this.vel.x += this.spd;
+        if(key.w) this.vel.y -= this.spd;
+        if(key.s) this.vel.y += this.spd;
+
+        this.vel.limit(500);
+
+
+        if(this.pos.y > H - this.s){
+            this.pos.y = H - this.s;
+            this.vel.y = 0;
+        }
+
+        this.trailCounter--;
+        if(this.trailCounter <= 0){
+            this.trail.push(new Trail(this.pos));
+            this.trailCounter = 10;
+        }
+        
+
+        this.rot = Math.atan2(this.vel.y, this.vel.x);
+    }
+
+    this.draw = function(){
+        c.save();
+        c.translate(this.pos.x+ this.s/2, this.pos.y+this.s/2);
+        c.rotate(this.rot);
+        square2(-this.s/2, -this.s/2, this.s, "white");
+        c.restore();
+      //  square1(this.pos, this.s, "white");
+
+      for(let i = this.trail.length-1; i >= 0; i--){
+            if(this.trail[i].life <= 0) this.trail.splice(i,1);
+            else 
+            this.trail[i].update();
+        }
+
+    }
+}
+
+
+Building = function(x, y, w, h, col, l){
+    this.x = x;
+    this.y = y;
+    this.w = w;
+    this.h = h;
+    this.realX = 0;
+    this.realY = 0;
+    this.col = col;
+    this.layer = l;
+    this.rowTurn = 0;
+    this.colTurn = 0;
+    this.colTimer = 5;
+    this.randomI = 0;
+    this.randomJ = 0;
+    this.randomTimer = 20;
+
+}
+
+
+Building.prototype.draw = function(){
+    if(-cam.x < this.realX+this.w && -cam.x+W > this.realX){  // Dont draw shit if not in screen
+        rect2(this.realX, this.realY, this.w, this.h, 
+        "black"
+        //this.col
+        );
+        this.drawWindows();
+    }
+}
+
+Building.prototype.parallax = function(cm){
+    this.realX = this.x -cm.x*this.layer;
+    this.realY = this.y -cm.y*this.layer;
+}
+
+Building.prototype.debug = function(cm){
+    console.log("cam x: " + cm.x);
+    console.log("p x: " + this.x);
+}
+
+Building.prototype.drawWindows = function(){
+    var noOfRows = 5;
+    var rows = this.w / 5;
+    var rows2 = rows / 4;
+    var offsetx = rows2/2 + this.realX;
+    var offsety = rows2/2 + this.realY;
+
+    var noOfCols = Math.floor(this.h / rows);
+    
+
+    for(let i = 0; i < noOfRows; i++){
+        for(let j = 0; j < noOfCols; j++){
+            
+            var col = "rgb(0, 0, 200)";
+            if(this.randomTimer < 0){
+                this.randomTimer = 5;
+                this.randomI = Math.floor(Math.random()*noOfRows);
+                this.randomJ = Math.floor(Math.random()*noOfCols);
+            }
+            if(i == this.randomI && j == this.randomJ) col ="white";
+            if(i == this.rowTurn && j == this.colTurn){ 
+                col = "cyan";
+                
+                if(this.colTimer < 0){
+                    this.colTimer = 5;
+                    this.rowTurn++;        
+                }
+            }
+            rect2(i * rows + offsetx, j * rows + offsety, rows2*1.5, rows2*2, 
+            col
+            //"rgba(255, 255, 255, 1)"
+            );
+            c.shadowBlur = 0;
+        }
+
+        if(this.rowTurn >= noOfRows){  
+            this.rowTurn = 0;    
+            this.colTurn++;
+            if(this.colTurn >= noOfCols) this.colTurn = 0;  
+            
+        }
+
+    } // outter for
+
+    this.colTimer--;
+    this.randomTimer--;
+}
+
+
+Camera = function(){
+	this.x=0;
+	this.y=0;
+    this.targetX = 0;
+    this.targetY = 0;
+
+	
+	this.follow = function(ob){
+        this.targetX = W/2-ob.pos.x;
+		this.targetY = H/2-ob.pos.y + ob.ground; 
+		
+		
+		if (this.targetY + ob.s < 0) this.targetY = -ob.s;
+		this.x = lerp(this.x, this.targetX, 0.7);
+		this.y = lerp(this.y, this.targetY, 0.7);
+        c.translate(this.x, this.y);
+        
+	}
+
+	this.update = function(){
+            this.follow(player);	
+	}
+}
+
+
+Mountain = function(l){
+    this.xNodes = [];
+    this.realXNodes = [];
+    this.realYNodes = [];
+    this.yNodes = [];
+    this.layer = l;
+
+    this.create = function(){
+        var x, y;
+        x = -(Math.random() * 400+400);
+        y = H;
+        var peak = Math.random() * (100);  // between 100 and 512
+
+        this.xNodes.push(x);
+        this.yNodes.push(y);
+        this.realXNodes.push(0);
+        this.realYNodes.push(0);
+
+        this.roughTerrain = function(r){
+            for(let i = 0; i < r; i++){
+                this.xNodes.push(x + 100);
+                this.yNodes.push(y + Math.random()*60 - 30);
+                this.realXNodes.push(0);
+                this.realYNodes.push(0); 
+                
+            }
+        }
+
+        while(y > peak){
+            x += Math.random()*200 + 50;
+            y -= Math.random() * 100;
+            this.xNodes.push(x);
+            this.yNodes.push(y);
+            this.realXNodes.push(0);
+            this.realYNodes.push(0);
+           // this.roughTerrain(Math.random()*100 + 10);
+            
+        }
+
+        while(y < H){
+            x += Math.random()*200 + 50;
+            y += Math.random() * 100;
+            this.xNodes.push(x);
+            this.yNodes.push(y);
+            this.realXNodes.push(0);
+            this.realYNodes.push(0);
+         //   this.roughTerrain(Math.random()*5+5);
+        }
+    }
+
+    this.parallax = function(cm){
+        for(let i in this.realXNodes){
+            this.realXNodes[i] = this.xNodes[i] - cm.x * this.layer;
+            this.realYNodes[i] = this.yNodes[i] - cm.y * this.layer;
+        }
+    }
+
+    this.draw = function(){
+        c.beginPath();
+        c.moveTo(this.realXNodes[0], this.realYNodes[0])
+        for(let i = 1; i < this.realXNodes.length; i++){
+            c.lineTo(this.realXNodes[i], this.realYNodes[i]);
+        }
+
+        c.fillStyle = "rgba(10, 0, 10, 1)";
+        c.shadowBlur = 200;
+        c.shadowColor = "rgba(100, 20, 20, 0.5)";
+        c.fill();
+        c.shadowBlur = 0;
+    }
+}
+
+function drawGround(){
+
+    rect2(-cam.x, H, 10000, 10000, "black");
+}
+
+
+
+function drawMountain(){
+    c.beginPath();
+    c.moveTo(400, H);
+    c.lineTo(700, H - 200);
+    c.lineTo(800, H - 300);
+    c.lineTo(900, H - 400);
+    c.lineTo(1100,H - 600);
+    c.lineTo(1100, H);
+    c.fillStyle = "rgba(10, 0, 10, 1)";
+    c.shadowBlur = 200;
+    c.shadowColor = "rgba(50, 15, 15, 0.2)";
+    c.fill();
+    c.shadowBlur = 0;
+}
+
+function drawMountain2(){
+    c.beginPath();
+    var x, y;
+    x = Math.random() * 400;
+    y = 0;
+
+    c.moveTo(x, H);
+    while(x < W){
+        x += Math.random()*200 + 50;
+        y += Math.random() * 100;
+        c.lineTo(x, H-y);
+    }
+    
+    c.lineTo(x, H);
+    c.fillStyle = "rgba(10, 0, 10, 1)";
+    c.shadowBlur = 200;
+    c.shadowColor = "rgba(50, 15, 15, 0.8)";
+    c.fill();
+    c.shadowBlur = 0;
+}
+
+function createBuildings(s, col, f, level){
+    var x, y, w, h;
+    x = 0;
+    while(x < W*10){
+        w = Math.random()*10 + 50;
+        h = Math.random()*250 +50;
+        y = H-h/s-level;
+        buildings.push(new Building(x, y, w/s, h/s, col, f));
+        x += (w + (Math.random()*100 + 20)/s)/s;
+        
+    }
+}
+
+
+function loop(){
+    clear();
+    player.update();
+    train.moveTrain();
+
+    c.save();
+    cam.follow(player);
+    for(let i in buildings) buildings[i].parallax(cam);
+    mountain.parallax(cam);
+    train.parallax(cam);
+
+    mountain.draw();
+    train.draw();
+    for(let i in buildings) buildings[i].draw();
+    player.draw();
+    drawGround();
+    c.restore();
+    rect2(0, 0, W, H, "rgba(255, 0, 255, 0.3)");
+   
+    requestAnimationFrame(loop);
+}
+
+// CONST AND VARS
+const canvas = document.getElementById("canvas");
+const c = canvas.getContext("2d");
+const W = canvas.width;
+const H = canvas.height;
+var mouse = {pos: new vec(0,0), click:false};
+var key = {
+    w:false,
+    a:false,
+    s:false,
+    d:false
+};
+
+var buildings = [];
+var player;
+var cam;
+var mountain;
+var train;
+
+setup();
+requestAnimationFrame(loop);
+
+
+
+
+</script>
+</html>
