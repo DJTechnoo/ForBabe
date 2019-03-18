@@ -10,6 +10,23 @@ vec = function(x, y){
     this.y = y;
 }
 
+function Pic(src, x, y, w2, h2){
+	this.sprite = new Image();
+	this.sprite.src = src;
+    this.x = x;
+    this.y = y;
+    this.w2 = w2;
+    this.h2 = h2;
+    this.alpha = 1;
+
+	this.draw = function(){
+        c.save();
+        c.globalAlpha = this.alpha;
+        c.drawImage(this.sprite, this.x, this.y, this.w2, this.h2);
+        c.restore();
+	}
+}
+
 vec.prototype.add = function(v){
     return new vec(this.x + v.x, this.y + v.y);
 }
@@ -77,29 +94,14 @@ function rect2(x, y, w, h, col){
 
 function clear(){
     rect2(0, 0, W, H, 
+      //  "rgba(255, 255, 255, 0.5)"
         "rgba(25, 6, 18, 1)" 
         //"rgba(150, 60, 0, 1)"
         );
 }
 
-function setup(){
-    document.addEventListener("mousemove", mouseHandler);
-    document.addEventListener("mousedown", click);
-    document.addEventListener("mouseup", click);
-    document.addEventListener("keydown", keyboard);
-    document.addEventListener("keyup", keyboard);
 
-    createBuildings(3, "rgba(4, 4, 4, 0.5)", 0.99, 60);
-    createBuildings(2, "rgba(4, 4, 4, 0.5)", 0.985, 40);
-    createBuildings(1.7, "rgba(4, 4, 4, 0.5)", 0.965, 20);
-    createBuildings(1, "rgba(7, 7, 7, 0.5)", 0.95, 10);
-    createBuildings(0.2, "rgba(10, 10, 10, 0.5)", 0, 0);
-    player = new Player();
-    cam = new Camera();
-    mountain = new Mountain(0.995);
-    mountain.create();
-    train = new Train(0, H-100, 60, 10, 10, 0.993);
-}
+
 
 function mouseHandler(evt){
     var rect = canvas.getBoundingClientRect();
@@ -333,6 +335,81 @@ Building.prototype.drawWindows = function(){
     this.randomTimer--;
 }
 
+Sparkle = function(x, y){
+    this.x = x;
+    this.y = y;
+    this.s = 1;
+    this.alpha = 1;
+    this.life = Math.random()*20+10;
+
+    this.draw = function(){
+        rect2(this.x, this.y, this.s, this.s, "rgba(0, 120, 100," + this.alpha + ")");
+        this.alpha = map(this.life, 0, 15, 0, 1);
+       // this.life--;
+    }
+}
+
+
+Sea = function(){
+    const maksTime = 10;
+    this.sparkleTime = maksTime;
+    this.sparkles = [];
+    this.horizon = H-50;
+    this.area = 100;
+
+    this.draw = function(){
+        rect2(0, this.horizon, W, H-this.horizon, 
+        // "rgba(0, 210, 255, 1)"
+        //"rgba(0, 180, 255, 1)"
+        "rgba(0, 0, 25, 1)"
+      // "rgba(0, 100, 200, 1)"
+        );
+        if(this.sparkleTime >= maksTime){
+            this.updateSparkles();
+            this.sparkleTime = 0;
+        }
+        this.drawSparkles();
+        this.sparkleTime++;
+    }
+
+    this.updateSparkles = function(){
+        this.sparkles.splice(0,this.sparkles.length);
+        var r = Math.random()*50 + 50; 
+        var x, y;
+        for(let i = 0; i < r; i++){
+           // x = Math.random()*this.area + W/2 - this.area;
+           x = Math.random()*W;
+            y = Math.random()*(H-this.horizon)/2 + this.horizon;
+            this.sparkles.push(new Sparkle(x, y));
+        }
+
+        for(let i = 0; i < r*2; i++){
+            // x = Math.random()*this.area + W/2 - this.area;
+            x = Math.random()*W;
+            y = Math.random()*(H-this.horizon)/3 + this.horizon; 
+            this.sparkles.push(new Sparkle(x, y));
+        }
+
+        for(let i = 0; i < r*3; i++){
+            // x = Math.random()*this.area + W/2 - this.area;
+            x = Math.random()*W;
+            y = Math.random()*(H-this.horizon)/4 + this.horizon; 
+            this.sparkles.push(new Sparkle(x, y));
+        }
+
+        for(let i = 0; i < r*4; i++){
+            // x = Math.random()*this.area + W/2 - this.area;
+            x = Math.random()*W;
+            y = Math.random()*(H-this.horizon)/4.5 + this.horizon; 
+            this.sparkles.push(new Sparkle(x, y));
+        }
+    }
+
+    this.drawSparkles = function(){
+        for(let i in this.sparkles) this.sparkles[i].draw();
+    }
+}
+
 
 Camera = function(){
 	this.x=0;
@@ -431,6 +508,37 @@ Mountain = function(l){
     }
 }
 
+Galaxy = function(){
+    this.spr = new Pic("Assets/galaxy.png", 0, 0, W, H);
+    this.draw = function(){
+        this.spr.draw();
+    }
+}
+
+Planet = function(src){
+    this.x = W/2;
+    this.y = -100;
+    this.s = 1500;
+    this.a = 3;
+    this.spd = 500;
+    this.spr = new Pic("Assets/planet1.png", 0, 0, this.s, this.s);
+
+    this.update = function(){
+        this.x = Math.cos(this.a) * this.spd + 500;
+        this.y = Math.sin(this.a) * this.spd + 200;
+        this.a += 0.0002;
+    }
+
+    this.draw = function(){
+       // square2(this.x, this.y, this.s, "yellow");
+       this.spr.x = this.x;
+       this.spr.y = this.y;
+       this.spr.alpha = 1;
+       this.spr.draw();
+      
+    }
+}
+
 function drawGround(){
 
     rect2(-cam.x, H, 10000, 10000, "black");
@@ -488,11 +596,38 @@ function createBuildings(s, col, f, level){
 }
 
 
+function setup(){
+    document.addEventListener("mousemove", mouseHandler);
+    document.addEventListener("mousedown", click);
+    document.addEventListener("mouseup", click);
+    document.addEventListener("keydown", keyboard);
+    document.addEventListener("keyup", keyboard);
+
+    createBuildings(3, "rgba(4, 4, 4, 0.5)", 0.99, 60);
+    createBuildings(2, "rgba(4, 4, 4, 0.5)", 0.985, 40);
+    createBuildings(1.7, "rgba(4, 4, 4, 0.5)", 0.965, 20);
+    createBuildings(1, "rgba(7, 7, 7, 0.5)", 0.95, 10);
+    createBuildings(0.2, "rgba(10, 10, 10, 0.5)", 0, 0);
+    player = new Player();
+    cam = new Camera();
+    mountain = new Mountain(0.995);
+    mountain.create();
+    train = new Train(0, H-100, 60, 10, 10, 0.993);
+    sea = new Sea();
+    sun = new Planet();
+    galaxy = new Galaxy();
+}
+
+
 function loop(){
     clear();
     player.update();
     train.moveTrain();
-
+    sun.update();
+    
+    galaxy.draw();
+    sun.draw();
+    sea.draw();
     c.save();
     cam.follow(player);
     for(let i in buildings) buildings[i].parallax(cam);
@@ -509,6 +644,7 @@ function loop(){
    // rect2(0, 0, W, H, "rgba(255, 0, 255, 0.3)");
    var al = map(player.pos.y, -10000, 700, 0, 0.3);
    rect2(0, 0, W, H, "rgba(255, 0, 255, " + al + ")");
+   
    
     requestAnimationFrame(loop);
 }
@@ -531,6 +667,9 @@ var player;
 var cam;
 var mountain;
 var train;
+var sea;
+var sun;
+var galaxy;
 
 setup();
 requestAnimationFrame(loop);
