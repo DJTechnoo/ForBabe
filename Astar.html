@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html>
+<canvas id="canvas" width="1024" height="512"></canvas>
+<script>
+
+const CANVAS = document.getElementById("canvas");
+const C = CANVAS.getContext("2d");
+const W = CANVAS.width;
+const H = CANVAS.height;
+const BSIZE = 8;
+
+document.addEventListener("mousedown", mouseHandler);
+document.addEventListener("mouseup", mouseHandler);
+document.addEventListener("mousemove", moveHandler);
+
+function moveHandler(evt){
+    mouse.x = evt.x;
+    mouse.y = evt.y;
+}
+
+var mouse = {
+    x: 0,
+    y: 0,
+    d: false
+};
+
+function mouseHandler(evt){
+    mouse.d = (evt.type == "mousedown")? true:false;
+}
+
+
+function click(){
+    reset();
+    var x = Math.floor(mouse.x/BSIZE);
+    if(x < 0) x = 0; if(x >= grid.length) x = grid.length-1;
+    var y = Math.floor(mouse.y/BSIZE);
+    if(y < 0) y = 0; if(y >= grid[x].length) y = grid[x].length-1;
+    console.log("mouse: " + x + " " + y);
+    grid[x][y].state = "obstacle";
+}
+
+function reset(){
+    for(let i in grid){
+        for(let j in grid[i]){
+            grid[i][j].parent = "null";
+            if(!grid[i][j].special)grid[i][j].state = "neutral";
+        }
+    }
+
+    open = [start];
+    close = [];
+    found = false;
+}
+
+function rect(x, y, w, h, col){
+    C.fillStyle = col;
+    C.fillRect(x, y, w, h);
+}
+
+function clear(){
+    rect(0, 0, W, H, "black");
+}
+
+function equals(o1, o2){
+    if(o1.x == o2.x && o1.y == o2.y) return true;
+    return false;
+}
+
+
+function makeGrid(n, m){
+    var arr = new Array(n);
+
+    for(let i = 0; i < n; i++) arr[i] = new Array(m);
+    for(let i = 0; i < n; i++){
+        for(let j = 0; j < m; j++){
+            arr[i][j] = new Cell(i*BSIZE, j*BSIZE);
+        }
+    }
+
+    for(let i = 0; i < n; i++){     // add all neighbours
+        for(let j = 0; j < m; j++){
+            if(i+1<n)       arr[i][j].neighbours.push(arr[i+1][j]);
+            if(i-1>=0)      arr[i][j].neighbours.push(arr[i-1][j]);
+            if(j+1<m)       arr[i][j].neighbours.push(arr[i][j+1]);
+            if(j-1 >= 0)    arr[i][j].neighbours.push(arr[i][j-1]);
+        }
+    }
+
+    return arr;
+}
+
+function drawGrid(){
+    for(let i in grid){
+        for(let j in grid[i]){
+            grid[i][j].draw();
+        }
+    }
+}
+
+function distance(c1, c2){
+    len = Math.sqrt(c1.x*c2.x + c1.y*c2.y);
+    return len;
+}
+
+function lowestF(arr){
+    let lowestCost = 100000;
+    let currentLowest = 0;
+    for(let i in arr){
+        if((arr[i].f)< lowestCost){
+            lowestCost = arr[i].f;
+            currentLowest = i;
+        }
+    }
+
+    var l = arr[currentLowest];
+    arr.splice(currentLowest, 1);
+    return l;
+}
+
+function inListAndHigherF(o, arr){
+    for(let i in arr){
+        if(equals(o, arr[i])){
+           if(o.g > arr[i].g) return true;
+           return false;
+        }        
+    }
+
+    return false;
+}
+
+function inListAndLowerF(o, arr){
+    for(let i in arr){
+        if(equals(o, arr[i])){
+           if(o.f < arr[i].f) return true;
+           return false;
+        }        
+    }
+
+    return false;
+}
+
+function inList(o, arr){
+    for(let i in arr){
+        if(equals(o, arr[i])){
+           return true;
+        }        
+    }
+
+    return false;
+}
+
+function popThis(o, arr){
+    let p;
+    for(let i = arr.length-1; i >= 0; i--){
+        if(equals(o, arr[i])) {p = arr[i]; arr.splice(i, 1);}
+        return p;
+    }
+}
+
+
+
+
+Cell = function(x, y){
+    this.state = "neutral";
+    this.x = x;
+    this.y = y;
+    this.col = cols[this.state];
+    this.g = 0;
+    this.f = 0;
+    this.neighbours = [];
+    this.parent = "null";
+    this.special = false;
+    this.stroke = 0.1;
+
+    this.draw = function(){
+        if(this.state == "obstacle" || this.state == "start" || this.state == "end") this.special = true;
+        this.col = cols[this.state];
+        rect(this.x+this.stroke, this.y+this.stroke, BSIZE-this.stroke, BSIZE-this.stroke, this.col);
+    }
+}
+
+
+var cols = {
+    "neutral": "grey",
+    "start" : "cyan",
+    "end" : "blue",
+    "current" : "red",
+    "closed": "pink",
+    "open" : "green",
+    "obstacle": "black"
+};
+
+
+var grid = makeGrid(50, 50);
+var start = grid[0][0];
+var end = grid[20][20];
+start.state = "start";
+end.state = "end";
+
+
+
+var open = [start];
+var close = [];
+var q;
+var found = false;
+
+
+
+function loop(){
+    if(mouse.d)click();
+    clear();
+    start.state = "start";
+    end.state = "end";
+    drawGrid();
+    if(!found){
+        if(open.length > 0){    // while openset not empty
+            q = lowestF(open);
+            if(!inList(q, close))
+                close.push(q);
+            q.state = "closed";
+            if(equals(q, end)){
+                found = true; 
+               
+                while(!equals(q,start)){
+                    
+                    q.state = "current";
+                    q = q.parent;
+                    start.state = "current";
+                }
+            }
+            if(!found){
+                for(let i in q.neighbours){
+                    var nb = q.neighbours[i];
+                    if(nb.state == "obstacle")continue;
+
+                    if(inList(nb, close)) continue;
+                    nb.g = q.g + 1;
+                    let h = distance(nb, end);
+                    nb.f = nb.g + h;
+
+                    if(inListAndHigherF(nb, open)) continue;
+
+                    if(!inList(nb, open)){
+                        open.push(nb);
+                        nb.state = "open";
+                        nb.parent = q;
+                    }
+                }            
+            }
+        }
+    }
+ 
+    requestAnimationFrame(loop);
+}
+
+loop();
+
+</script>
+</html>

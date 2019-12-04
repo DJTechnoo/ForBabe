@@ -4,8 +4,8 @@
 const canvas = document.getElementById("canvas");
 const c = canvas.getContext("2d");
 const W = canvas.width;
-const H = canvas.height;
-
+const H = canvas.height; 
+c.globalCompositeOperation = "lighter";
 
 function square(x, y, w, h, col){
     c.fillStyle = col;
@@ -15,6 +15,10 @@ function square(x, y, w, h, col){
 
 function clear(){
     square(0, 0, W, H, "rgba(0, 0, 0, 0.3)");
+}
+
+function clear2(){
+    c.clearRect(0, 0, W, H);
 }
 
 Boid = function(){
@@ -232,7 +236,7 @@ var engine = new Engine(5);
 var background = new pic("img2.png", 0, 0, W, H);
 
 function loop(){
-    //clear();
+    clear2();
     background.draw();
     engine.allRules();
     engine.updateAndDraw();

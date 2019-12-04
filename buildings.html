@@ -93,6 +93,7 @@ function rect2(x, y, w, h, col){
 //   GAME  FUNCTIONS
 
 function clear(){
+    c.clearRect(0, 0, W, H);
     rect2(0, 0, W, H, 
       //  "rgba(255, 255, 255, 0.5)"
         "rgba(25, 6, 18, 1)" 
@@ -654,6 +655,7 @@ function createBuildings(s, col, f, level){
 
 
 function setup(){
+    //c.globalCompositeOperation = "darken";
     document.addEventListener("mousemove", mouseHandler);
     document.addEventListener("mousedown", click);
     document.addEventListener("mouseup", click);
