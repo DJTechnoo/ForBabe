@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<canvas id="canvas" width="600" height="600"></canvas>
+<script>
+
+const CANVAS = document.getElementById("canvas");
+const C = CANVAS.getContext("2d");
+const W = CANVAS.width;
+const H = CANVAS.height;
+
+
+function clear(col){
+    C.fillStyle = col;
+    C.fillRect(0, 0, W, H);
+}
+
+
+function line(x1, y1, x2, y2){
+    C.strokeStyle = "rgba(255, 255, 255, 0.1)";
+    C.beginPath();
+    C.moveTo(x1, y1);
+    C.lineTo(x2, y2);
+    C.stroke();
+}
+
+
+function collatz(n){
+    if(n%2 == 0)return n/2;
+    else return (n*3+1)/2;
+}
+
+
+function setup(){
+   // C.globalCompositeOperation='screen';
+    var paths = [];
+   // var move = 5;
+   // var rotate = 0.5;
+    var move = Math.random()*4+1;
+    var rotate = (Math.random()*40)/100+0.2; 
+    var ignore = 40;
+    clear("black");
+    C.translate(W/2, H/2);
+    for(let i = 1; i < 10000; i++){
+        let n = i*Math.floor(Math.random()*40+1);
+        while(n != 1){
+            paths.push(collatz(n));
+            n = collatz(n);
+        }
+
+        paths.push(1);
+        C.save();
+        // code here
+        for(let k = 0; k < paths.length; k++){
+            if(paths[k]%2 == 0)
+                C.rotate(rotate);
+            else C.rotate(-rotate);
+            if(k > ignore)
+                line(0, 0, 0, -move);
+            C.translate(0, -move);
+        }
+        paths = [];
+
+        C.restore();
+    }
+}
+
+
+setup();
+
+
+
+</script>
+</html>
