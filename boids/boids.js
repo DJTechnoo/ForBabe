@@ -203,17 +203,15 @@ Engine = function(n){
     }
 }
 
-function pic(src, x, y, w2, h2){
+function pic(src, w, h){
 	this.sprite = new Image();
 	this.sprite.src = src;
-    this.x = x;
-    this.y = y;
-    this.w2 = w2;
-    this.h2 = h2;
+    this.w = w;
+    this.h = h;
 	
 
-	this.draw = function(){
-		c.drawImage(this.sprite, x, y, this.w2, this.h2);
+	this.draw = function(x, y){
+		C.drawImage(this.sprite, x, y, this.w, this.h);
 	}
 }
 
