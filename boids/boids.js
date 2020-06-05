@@ -210,8 +210,8 @@ function pic(src, w, h){
     this.h = h;
 	
 
-	this.draw = function(x, y){
-		C.drawImage(this.sprite, x, y, this.w, this.h);
+	this.draw = function(){
+		c.drawImage(this.sprite, 0, 0, this.w, this.h);
 	}
 }
 
@@ -231,7 +231,7 @@ var mouse = {
 };
 
 var engine = new Engine(5);
-var background = new pic("img2.png", 0, 0, W, H);
+var background = new pic("img2.png", W, H);
 
 function loop(){
     clear2();

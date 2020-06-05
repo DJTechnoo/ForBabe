@@ -1,17 +1,16 @@
 body {
 	padding:0px;
-	background:#888;
+	background: black;
 	font-size:1.5em;
 	font-family:helvetica;
+	color: purple;
 }
 
 ul {
-	list-style-type:none;
-	
+	list-style-type:none;	
 }
 
-li {
-	
+li {	
 	font-family:helvetica;
 }
 
@@ -24,7 +23,7 @@ h1 {
 
 b {
 	font-size:1.1em;
-
+	color:purple;
 }
 
 canvas {
@@ -35,7 +34,20 @@ canvas {
 a {
 	text-decoration:none;
 	color:purple;
-	
+	opacity: 1;
+	transition: color 2s, opacity 2s, font-size 1s, text-shadow 1s;
+}
+
+a:hover {
+	opacity: 0.6; 
+	color: white;
+	background-size:100% 2px;
+	text-shadow:0 2.5px 4px rgba(200,200,200,0.5);
+}
+
+
+.lign {
+	text-align:center;
 }
 
 
