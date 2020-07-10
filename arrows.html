@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html>
+<canvas id="canvas" width="1024" height="512"></canvas>
+<script>
+
+//   VECTOR CLASS
+vec = function(x, y){
+    this.x = x;
+    this.y = y;
+}
+
+vec.prototype.add = function(v){
+    return new vec(this.x + v.x, this.y + v.y);
+}
+
+
+vec.prototype.sub = function(v){
+    return new vec(this.x - v.x, this.y - v.y);
+}
+
+
+vec.prototype.scale = function(s){
+    this.x *= s; this.y *= s;
+}
+
+
+vec.prototype.length = function(){
+    return Math.sqrt(this.x * this.x + this.y * this.y);
+}
+
+
+vec.prototype.normalize = function(){
+    let len = this.length();
+    if(len > 0) {this.x /= len; this.y /= len;}
+    else {this.x = 0; this.y = 0;}
+}
+
+
+vec.prototype.limit = function(lim){
+    let len = this.length();
+    if(len > lim){
+        this.normalize();
+        this.scale(lim);
+    }
+}
+
+
+function dist(v1, v2){
+    var v3 = v1.sub(v2);
+    return v3.length();
+}
+
+function squareMiddle(pos, s, col){
+    c.fillStyle = col;
+    c.fillRect(pos.x-s/2, pos.y-s/2, s, s);
+}
+
+function square1(pos, s, col){
+    c.fillStyle = col;
+    c.fillRect(pos.x, pos.y, s, s);
+}
+
+function square2(x, y, s, col){
+    c.fillStyle = col;
+    c.fillRect(x, y, s, s);
+}
+
+function rect1(pos, w, h, col){
+    c.fillStyle = col;
+    c.fillRect(pos.x, pos.y, w, h);
+}
+
+function rect2(x, y, w, h, col){
+    c.fillStyle = col;
+    c.fillRect(x, y, w, h);
+}
+
+function line(pos1, pos2, col){
+    c.beginPath();
+    c.moveTo(pos1.x, pos1.y);
+    c.lineTo(pos2.x, pos2.y);
+    c.strokeStyle = col;
+    c.lineWidth = 0.4;
+    c.stroke();
+}
+
+
+//   GAME  FUNCTIONS
+
+function clear(){
+    c.clearRect(0,0, W,H);
+    rect2(0, 0, W, H, "black");
+}
+
+function linearInterPolation(x1, x2, t){
+	return x1 + t*(x2-x1);
+}
+
+function setup(){
+    document.addEventListener("mousemove", mouseHandler);
+    document.addEventListener("mousedown", click);
+    document.addEventListener("mouseup", click);
+    document.addEventListener("keydown", keyboard);
+    document.addEventListener("keyup", keyboard);
+    launcher.setup();
+    c.globalCompositeOperation = "lighter";
+}
+
+function mouseHandler(evt){
+    var rect = canvas.getBoundingClientRect();
+    var root = document.documentElement;
+    mouse.pos.x = evt.clientX - rect.left - root.scrollLeft;
+    mouse.pos.y = evt.clientY - rect.top - root.scrollTop;		
+}
+
+function click(evt){
+    mouse.click = (evt.type == "mousedown")? true:false;
+}
+
+function keyboard(evt){
+    state = (evt.type == "keydown")? true:false;
+    switch(evt.key){
+        case 'w': key.w = state; break;
+        case 'a': key.a = state; break;
+        case 's': key.s = state; break;
+        case 'd': key.d = state; break;
+    }
+}
+
+function deviation(){
+    return Math.random() * DEVIATION - DEVIATION/2;
+}
+
+Arrow = function(pos, vel){
+    this.pos = pos;
+    this.vel = vel;
+    this.rot = Math.atan2(this.vel.y, this.vel.x);
+    this.s = Math.random() * 10 + 8;
+    this.tail = new vec(Math.cos(this.rot)*-this.s + this.pos.x, Math.sin(this.rot)*-this.s + this.pos.y);
+    this.stuckOnWall = false;
+
+    this.update = function(){
+        if(this.pos.x < W && this.pos.y < H && this.pos.x > 0){
+            this.tail = this.tail.add(this.vel);
+            this.rot = Math.atan2(this.vel.y, this.vel.x);
+            this.pos.x = Math.cos(this.rot)*this.s + this.tail.x;
+            this.pos.y = Math.sin(this.rot)*this.s + this.tail.y;
+            this.vel.y += G;
+        } else this.stuckOnWall = true; 
+    }
+
+    this.stuckTo = function(boxVel){
+        this.vel = boxVel;
+
+        this.tail = this.tail.add(this.vel);
+        this.pos.x = Math.cos(this.rot)*this.s + this.tail.x;
+        this.pos.y = Math.sin(this.rot)*this.s + this.tail.y;
+    }
+
+    this.draw = function(){
+       /* c.save();
+        c.translate(this.pos.x, this.pos.y);
+        c.rotate(this.currentRot);
+        square2(-this.s/2, -this.s/2, this.s, "yellow");
+        c.restore();
+        */
+        line(this.pos, this.tail, "#bb9cd9");
+    }
+}
+
+Launcher = function(){
+    this.startPos = new vec(0, 0);
+    this.releasePos = new vec(0, 0);
+    this.starting = false;
+    this.arrows = [];
+    this.arrowsStuckOnWalls = [];
+    this.boxes = [];
+
+    this.setup = function(){
+        var mv, bx, by;
+        for(let i = 0; i < 300; i++){
+            bx = Math.random() *(W-600) + 400;
+            by = Math.random() *(H-100) + 100;
+            mv = 1;//Math.floor(Math.random()*1.99);
+            this.boxes.push(new Box(bx, by, mv));
+        }
+    }
+
+    this.collide = function(arr, b){
+        if(arr.pos.x > b.pos.x &&
+        arr.pos.x < b.pos.x+ b.s &&
+        arr.pos.y > b.pos.y &&
+        arr.pos.y < b.pos.y + b.s){
+            return true;
+        }
+        return false;
+    }
+
+    this.update = function(){
+        if(mouse.click){
+            if(!this.starting){
+                this.startPos = new vec(mouse.pos.x, mouse.pos.y);
+                this.starting = true;
+            }
+            this.releasePos = new vec(mouse.pos.x, mouse.pos.y);
+        }else{
+            if(this.starting){
+                this.shoot();
+                this.starting = false;
+            }
+        }
+
+        for(let j = this.boxes.length-1; j >= 0; j--){
+            for(let i = this.arrows.length-1; i >= 0; i--) {
+                if(this.collide(this.arrows[i], this.boxes[j])){
+                    var arr = this.arrows[i];
+                    var affectBoxVel = new vec(arr.vel.x, arr.vel.y);
+                    arr.vel.scale(0, 0);
+                    affectBoxVel.scale(KINETICSCALE);
+                    this.boxes[j].vel = this.boxes[j].vel.add(affectBoxVel);
+                    this.boxes[j].arrows.push(arr);
+                    this.arrows.splice(i, 1);
+                }
+            }
+        }
+
+        for(let i in this.arrows) this.arrows[i].update();
+        for(let i = this.arrows.length-1; i >= 0; i--){
+            if(this.arrows[i].stuckOnWall){
+                this.arrowsStuckOnWalls.push(this.arrows[i]);
+                this.arrows.splice(i, 1);
+            }
+        }
+
+        for(let i in this.boxes) this.boxes[i].update();
+    }
+
+    this.draw = function(){
+        if(this.starting){
+            line(this.startPos, this.releasePos, "white");
+        }
+
+        for(let i in this.arrows) this.arrows[i].draw();
+        for(let i in this.arrowsStuckOnWalls) this.arrowsStuckOnWalls[i].draw();
+        for(let i in this.boxes) this.boxes[i].draw();
+    }
+
+    this.shoot = function(){
+        for(let i = 0; i < GROUPARROWS; i++){
+            var pos = new vec(this.startPos.x, this.startPos.y);
+            var vel = this.startPos.sub(this.releasePos);
+            vel.x += deviation();
+            vel.y += deviation();
+            vel.scale(0.05);
+            this.arrows.push(new Arrow(pos, vel));
+        }
+    }
+}
+
+Box = function(x, y, movable){
+    this.pos = new vec(x, y);
+    this.vel = new vec(0, 0);
+    this.s = Math.random()*2 + 5;
+    this.movable = movable;
+    this.arrows = [];
+
+    this.update = function(){
+        if(this.movable){
+            for(let i in this.arrows){
+                this.arrows[i].stuckTo(this.vel);
+            }
+            this.pos = this.pos.add(this.vel);
+            this.vel.scale(0.95);
+        // this.vel.y += G;
+        } else this.vel.scale(0, 0);
+    }
+
+    this.draw = function(){
+        square1(this.pos, this.s, "#bb9cd9");
+        for(let i in this.arrows) this.arrows[i].draw();
+    }
+}
+
+
+function loop(){
+    clear();
+    squareMiddle(mouse.pos, 5, "yellow");
+    launcher.update();
+  //  box.update();
+    launcher.draw();
+  //  box.draw();
+    requestAnimationFrame(loop);
+}
+
+// CONST AND VARS
+const canvas = document.getElementById("canvas");
+canvas.style.cursor = "none";
+const c = canvas.getContext("2d");
+const W = canvas.width;
+const H = canvas.height;
+
+const G = 0.005;
+const DEVIATION = 10 ;
+const GROUPARROWS = 50;
+const KINETICSCALE = 0.06;
+
+var mouse = {pos: new vec(0,0), click:false};
+var key = {
+    w:false,
+    a:false,
+    s:false,
+    d:false
+};
+
+var launcher = new Launcher();
+//var box = new Box(300, 300, true);
+
+setup();
+requestAnimationFrame(loop);
+
+
+
+
+</script>
+</html>
