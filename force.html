@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html>
+<canvas id="canvas" width="1024" height="512"></canvas>
+<script>
+
+//   VECTOR CLASS
+vec = function(x, y){
+    this.x = x;
+    this.y = y;
+}
+
+vec.prototype.add = function(v){
+    return new vec(this.x + v.x, this.y + v.y);
+}
+
+
+vec.prototype.sub = function(v){
+    return new vec(this.x - v.x, this.y - v.y);
+}
+
+
+vec.prototype.scale = function(s){
+    this.x *= s; this.y *= s;
+}
+
+
+vec.prototype.length = function(){
+    return Math.sqrt(this.x * this.x + this.y * this.y);
+}
+
+
+vec.prototype.normalize = function(){
+    let len = this.length();
+    if(len > 0) {this.x /= len; this.y /= len;}
+    else {this.x = 0; this.y = 0;}
+}
+
+
+vec.prototype.limit = function(lim){
+    let len = this.length();
+    if(len > lim){
+        this.normalize();
+        this.scale(lim);
+    }
+}
+
+
+function dist(v1, v2){
+    var v3 = v1.sub(v2);
+    return v3.length();
+}
+
+function circle(p, s, col){
+    c.beginPath();
+    c.arc(p.x, p.y, s, 0, 2 * Math.PI);
+    c.fillStyle = col;
+    c.fill();
+}
+
+
+function square1(pos, s, col){
+    c.fillStyle = col;
+    c.fillRect(pos.x, pos.y, s, s);
+}
+
+function square2(x, y, s, col){
+    c.fillStyle = col;
+    c.fillRect(x, y, s, s);
+}
+
+function rect1(pos, w, h, col){
+    c.fillStyle = col;
+    c.fillRect(pos.x, pos.y, w, h);
+}
+
+function rect2(x, y, w, h, col){
+    c.fillStyle = col;
+    c.fillRect(x, y, w, h);
+}
+
+
+//   GAME  FUNCTIONS
+
+function clear(){
+    c.clearRect(0, 0, W, H);
+    rect2(0, 0, W, H, "black");
+}
+
+
+function mouseHandler(evt){
+    var rect = canvas.getBoundingClientRect();
+    var root = document.documentElement;
+    mouse.pos.x = evt.clientX - rect.left - root.scrollLeft;
+    mouse.pos.y = evt.clientY - rect.top - root.scrollTop;		
+}
+
+function click(evt){
+    mouse.click = (evt.type == "mousedown")? true:false;
+}
+
+function keyboard(evt){
+    state = (evt.type == "keydown")? true:false;
+    switch(evt.key){
+        case 'w': key.w = state; break;
+        case 'a': key.a = state; break;
+        case 's': key.s = state; break;
+        case 'd': key.d = state; break;
+    }
+}
+
+function map(inp, ra, rb, r2a, r2b){
+	if(inp <= ra) return r2a;
+	if(inp >= rb) return r2b;
+
+	var k = rb - ra;
+	var k2 = r2b - r2a;
+	var ratio = k2 / k;
+	var temp = inp - ra;
+
+    var result = temp * ratio + r2a;
+    return result;
+}
+
+const G = 5;
+
+O = function(x, y, m, col){
+    this.pos = new vec(x,y);
+    this.vel = new vec(0,0);
+    this.mass = m*2;
+    this.col = col;
+    this.coreCol = "white";
+
+    this.update = function(){
+        this.vel.scale(0.995);
+        this.pos = this.pos.add(this.vel);
+    }
+    
+    this.draw = function(){
+        circle(this.pos, this.mass-this.mass/3, this.coreCol);
+        circle(this.pos, this.mass, this.col);
+    }
+
+    this.collideWith = function(o2){
+        let v = o2.pos.sub(this.pos);
+        let rds = this.mass + o2.mass;
+        if(v.length() < rds){
+            let my_len = this.vel.length();
+            v.normalize();
+            v.scale(-my_len);
+            this.vel = v.add(this.vel);
+            this.vel.scale(0.5);
+        }
+    }
+
+    this.reactOn = function(o2){
+        let v = o2.pos.sub(this.pos);
+        let len = v.length();
+        v.scale((1/(len*len*len))*(this.mass*o2.mass)*G);
+       // v.scale(this.mass*o2.mass);
+       // v.scale(G);
+        v.limit(1);
+        v.scale(1/this.mass);
+        console.log(v);
+        this.vel = this.vel.add(v);
+    }
+}
+
+
+function circlesColliding(ball1, ball2, dt)
+{
+	//compare the distance to combined massii
+	var dx = ball2.pos.x - ball1.pos.x;
+	var dy = ball2.pos.y - ball1.pos.y;
+	var massii = ball1.mass + ball2.mass;
+
+	if ((dx * dx) + (dy * dy) <= massii * massii) {
+
+		var distance = Math.sqrt(((ball1.pos.x - ball2.pos.x)*(ball1.pos.x - ball2.pos.x)) + 
+								((ball1.pos.y - ball2.pos.y)*(ball1.pos.y - ball2.pos.y)));
+
+		var overLap = 0.5 * (distance - ball1.mass - ball2.mass);
+		ball1.pos.x -= (overLap * (ball1.pos.x - ball2.pos.x) / distance);
+		ball1.pos.y -= (overLap * (ball1.pos.y - ball2.pos.y) / distance);
+
+		ball2.pos.x += (overLap * (ball1.pos.x - ball2.pos.x) / distance);
+		ball2.pos.y += (overLap * (ball1.pos.y - ball2.pos.y) / distance);
+
+		
+		// dynamic collision
+		distance = Math.sqrt(((ball1.pos.x - ball2.pos.x)*(ball1.pos.x - ball2.pos.x)) + 
+								((ball1.pos.y - ball2.pos.y)*(ball1.pos.y - ball2.pos.y)));
+
+		var nx = (ball1.pos.x - ball2.pos.x) / distance;
+		var ny = (ball1.pos.y - ball2.pos.y) / distance;
+
+		var tx = -ny;
+		var ty = nx;
+
+		var tan1 = ball1.vel.x * tx + ball1.vel.y * ty;
+		var tan2 = ball2.vel.x * tx + ball2.vel.y * ty;
+
+		var dpNorm1 = ball1.vel.x * nx + ball1.vel.y * ny;
+		var dpNorm2 = ball2.vel.x * nx + ball2.vel.y * ny;
+
+
+		var m1 = (dpNorm1 * (ball1.mass - ball2.mass) + 2 * ball2.mass * dpNorm2)/ (ball1.mass + ball2.mass);
+		var m2 = (dpNorm2 * (ball2.mass - ball1.mass) + 2 * ball1.mass * dpNorm1)/ (ball1.mass + ball2.mass);
+
+
+		ball1.vel.x = tx * tan1 + nx * m1;
+		ball1.vel.y = ty * tan1 + ny * m1;
+		ball2.vel.x = tx * tan2 + nx * m2;
+		ball2.vel.y = ty * tan2 + ny * m2;
+
+	}
+}
+
+
+
+
+// CONST AND VARS
+const canvas = document.getElementById("canvas");
+const c = canvas.getContext("2d");
+const W = canvas.width;
+const H = canvas.height;
+var mouse = {pos: new vec(0,0), click:false};
+var key = {
+    w:false,
+    a:false,
+    s:false,
+    d:false
+};
+
+var o = [];
+
+function setup(){
+    document.addEventListener("mousemove", mouseHandler);
+    document.addEventListener("mousedown", click);
+    document.addEventListener("mouseup", click);
+    document.addEventListener("keydown", keyboard);
+    document.addEventListener("keyup", keyboard);
+    c.filter = 'blur(5px)';
+    c.globalCompositeOperation = "lighter";
+
+    var cols = [
+    "rgba(0, 255,100, 1)",
+    "rgba(100, 255,255, 1)",
+    "rgba(255, 100, 200, 1)",
+    "rgba(0, 100, 255, 1)"
+    ];
+
+    let j = 10;
+    for(let i = 0; i < j; i++){
+        o.push(new O(Math.random()*W, Math.random()*H, Math.random()*10+2, cols[Math.floor(Math.random()*cols.length)] ));
+        
+    }
+}
+
+function loop(){
+    clear();
+   // o[0].pos.x = mouse.pos.x; o[0].pos.y = mouse.pos.y; 
+    for(let i = 0; i < o.length; i++)
+        for(let j = 0; j < o.length; j++){
+            if(i != j){
+               // o[i].collideWith(o[j]);
+               o[i].reactOn(o[j]);
+               if(!mouse.click)
+               circlesColliding(o[i], o[j], 1);
+            }
+        }
+    
+   /* for(let i = 0; i < o.length-1; i++){
+        o[i+1].reactOn(o[i]);
+    }*/
+    
+    for(let i in o){
+        o[i].update();
+        o[i].draw();
+    }
+    requestAnimationFrame(loop);
+}
+
+setup();
+requestAnimationFrame(loop);
+
+
+
+
+</script>
+</html>
